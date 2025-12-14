@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifica Tiro</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+        
+        h1 { text-align: center; color: #2c3e50; font-size: 1.5em; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 20px; }
+
+        form { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        .section-title { font-size: 0.85em; text-transform: uppercase; color: #999; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px; }
+        .form-group { margin-bottom: 25px; }
+
+        /* Radio Buttons Risultato */
+        .result-options { display: flex; gap: 10px; }
+        .result-options input { display: none; }
+        .result-label { flex: 1; text-align: center; padding: 15px 5px; border-radius: 12px; border: 2px solid #eee; cursor: pointer; transition: all 0.2s; font-weight: bold; color: #777; display: flex; flex-direction: column; align-items: center; }
+        .result-icon { font-size: 1.5em; margin-bottom: 5px; }
+
+        #opt_miss:checked + label { background: #f5f5f5; border-color: #95a5a6; color: #7f8c8d; transform: scale(0.98); }
+        #opt_bordo:checked + label { background: #fff3e0; border-color: #ff9800; color: #e65100; transform: scale(0.98); }
+        #opt_centro:checked + label { background: #e8f5e9; border-color: #4caf50; color: #2e7d32; transform: scale(0.98); box-shadow: 0 4px 10px rgba(76, 175, 80, 0.2); }
+
+        select, input[type="text"], textarea { width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid #ddd; background: #f9f9f9; font-size: 16px; box-sizing: border-box; }
+
+        /* Multipli */
+        .multi-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .multi-group input { display: none; }
+        .multi-label { background: #fff; border: 1px solid #ddd; padding: 8px 15px; border-radius: 20px; font-size: 0.85em; cursor: pointer; color: #555; transition: all 0.2s; }
+        .multi-group input:checked + label { background: #673ab7; color: white; border-color: #673ab7; }
+
+        /* VISUALIZZAZIONE BICCHIERI (Stile Griglia/Cerchi) */
+        .cups-grid { 
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; 
+            padding: 15px; background: #2c3e50; border-radius: 15px; border: 4px solid #34495e; 
+        }
+        .cup-item { position: relative; }
+        .cup-item input { display: none; }
+        .cup-item label { 
+            width: 50px; height: 50px; 
+            display: flex; justify-content: center; align-items: center;
+            background: #c0392b; border: 4px solid #e74c3c; 
+            border-radius: 50%; 
+            color: transparent; /* Nasconde il testo dentro il cerchio per pulizia */
+            cursor: pointer; 
+            transition: transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-size: 0.7em; font-weight: bold;
+        }
+        /* Mostra il nome del bicchiere sotto o sopra? Facciamo tooltip semplice o testo bianco se preferisci */
+        .cup-item label::after {
+            content: attr(data-name);
+            position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            color: #ccc; font-size: 10px; white-space: nowrap; margin-top: 5px;
+        }
+
+        /* Stile Selezionato */
+        .cup-item input:checked + label { 
+            background: #27ae60; border-color: #2ecc71; transform: scale(0.95); opacity: 1;
+            color: white; 
+        }
+        .cup-item input:checked + label::before { content: '✕'; font-size: 1.5em; }
+
+        /* Stile Switch Salvezza */
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; vertical-align: middle; margin-left: 10px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2196F3; }
+        input:checked + .slider:before { transform: translateX(24px); }
+        .save-throw-wrapper { background: #fff3e0; padding: 10px; border-radius: 10px; border: 1px solid #ffcc80; display: inline-flex; align-items: center; margin-top: 10px;}
+
+        .btn-submit { width: 100%; padding: 18px; background: #2196F3; color: white; border: none; border-radius: 12px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #999; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Modifica Tiro</h1>
+    <div class="subtitle">ID #{{ record.id }} - {{ player_name }}</div>
+
+    <form method="POST">
+        
+        <div class="form-group">
+            <div class="section-title">Risultato</div>
+            <div class="result-options">
+                <input type="radio" id="opt_miss" name="risultato_tiro" value="Miss" onclick="handleLogic()" {% if record.miss == 'Sì' %}checked{% endif %}>
+                <label for="opt_miss" class="result-label"><span class="result-icon">💨</span>MISS</label>
+                
+                <input type="radio" id="opt_bordo" name="risultato_tiro" value="Bordo" onclick="handleLogic()" {% if record.bordo == 'Sì' %}checked{% endif %}>
+                <label for="opt_bordo" class="result-label"><span class="result-icon">🧱</span>BORDO</label>
+                
+                <input type="radio" id="opt_centro" name="risultato_tiro" value="Centro" onclick="handleLogic()" {% if record.centro == 'Sì' %}checked{% endif %}>
+                <label for="opt_centro" class="result-label"><span class="result-icon">🎯</span>CENTRO</label>
+            </div>
+        </div>
+
+        <div class="form-group" style="display: flex; gap: 15px;">
+            <div style="flex: 1;">
+                <div class="section-title">Bicchieri Totali</div>
+                <select name="numero_bicchieri" required>
+                    <option value="6" {% if record.numero_bicchieri == '6' %}selected{% endif %}>★★★★★★ (6)</option>
+                    <option value="5" {% if record.numero_bicchieri == '5' %}selected{% endif %}>★★★★★☆ (5)</option>
+                    <option value="4" {% if record.numero_bicchieri == '4' %}selected{% endif %}>★★★★☆☆ (4)</option>
+                    <option value="3" {% if record.numero_bicchieri == '3' %}selected{% endif %}>★★★☆☆☆ (3)</option>
+                    <option value="2" {% if record.numero_bicchieri == '2' %}selected{% endif %}>★★☆☆☆☆ (2)</option>
+                    <option value="1" {% if record.numero_bicchieri == '1' %}selected{% endif %}>★☆☆☆☆☆ (1)</option>
+                    <option value="0" {% if record.numero_bicchieri == '0' %}selected{% endif %}>☆☆☆☆☆☆ (0)</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <div class="section-title">Formato</div>
+                <select id="formato" name="formato" onchange="updateBicchiereColpitoOptions()" required>
+                    <option value="Piramide" {% if record.formato == 'Piramide' %}selected{% endif %}>Piramide 🔺</option>
+                    <option value="Rombo" {% if record.formato == 'Rombo' %}selected{% endif %}>Rombo 💠</option>
+                    <option value="Triangolo" {% if record.formato == 'Triangolo' %}selected{% endif %}>Triangolo 📐</option>
+                    <option value="Linea Verticale" {% if record.formato == 'Linea Verticale' %}selected{% endif %}>Linea Vert. ❙</option>
+                    <option value="Linea Orizzontale" {% if record.formato == 'Linea Orizzontale' %}selected{% endif %}>Linea Oriz. ━</option>
+                    <option value="Singolo Centrale" {% if record.formato == 'Singolo Centrale' %}selected{% endif %}>Singolo ⏺</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="dynamic-hit-section" style="display: none;">
+            <div class="form-group">
+                <div class="section-title">Bicchieri Speciali</div>
+                <div class="multi-group">
+                    <input type="radio" id="multi_none" name="bicchieri_multipli" value="" onclick="handleLogic()" {% if not record.bicchieri_multipli %}checked{% endif %}>
+                    
+                    <input type="radio" id="multi_doppio" name="bicchieri_multipli" value="Doppio" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Doppio' %}checked{% endif %}>
+                    <label for="multi_doppio" class="multi-label">Doppio</label>
+
+                    <input type="radio" id="multi_triplo" name="bicchieri_multipli" value="Triplo" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Triplo' %}checked{% endif %}>
+                    <label for="multi_triplo" class="multi-label">Triplo</label>
+
+                    <input type="radio" id="multi_quadruplo" name="bicchieri_multipli" value="Quadruplo" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Quadruplo' %}checked{% endif %}>
+                    <label for="multi_quadruplo" class="multi-label">Quad</label>
+                    
+                    <input type="radio" id="multi_quintuplo" name="bicchieri_multipli" value="Quintuplo" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Quintuplo' %}checked{% endif %}>
+                    <label for="multi_quintuplo" class="multi-label">Quint</label>
+                    
+                    <input type="radio" id="multi_sestuplo" name="bicchieri_multipli" value="Sestuplo" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Sestuplo' %}checked{% endif %}>
+                    <label for="multi_sestuplo" class="multi-label">Sest</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="section-title">QUALI BICCHIERI HAI COLPITO? (<span id="max-selection-label">Max 1</span>)</div>
+                <div id="bicchiere_colpito_container" class="cups-grid"></div>
+            </div>
+        </div>
+
+        <div class="save-throw-wrapper">
+            <span style="font-weight:bold; color:#555;">Tiro Salvezza?</span>
+            <label class="switch">
+                <input type="checkbox" name="tiro_salvezza" value="Sì" {% if record.tiro_salvezza == 'Sì' %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+            <div class="section-title">Bevanda</div>
+            <input type="text" name="bevanda" value="{{ record.bevanda }}">
+        </div>
+
+        <div class="form-group full-width" style="margin-top:15px;">
+            <div class="section-title">Note</div>
+            <textarea name="note" style="width:100%; border:1px solid #ddd; border-radius:8px; padding:10px;">{{ record.note }}</textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">SALVA MODIFICHE</button>
+    </form>
+    
+    <a href="{{ url_for('index', player_name=player_name) }}" class="btn-cancel">Annulla</a>
+</div>
+
+<script>
+    // Recupera la stringa salvata dal DB (es: "3 Sx, 3 Dx")
+    const savedCupsString = "{{ record.bicchiere_colpito }}";
+    // Converti la stringa in un array pulito per il confronto
+    const savedCupsArray = savedCupsString.split(',').map(s => s.trim());
+    
+    // IMPORTANTE: Questi nomi devono essere IDENTICI a quelli in app.py (CUP_DEFINITIONS)
+    const bicchieriOptions = {
+        "Piramide": ["3 Sx", "3 Cen", "3 Dx", "2 Sx", "2 Dx", "1 Cen"],
+        "Rombo": ["R3 Cen", "R2 Sx", "R2 Dx", "R1 Cen"],
+        "Triangolo": ["T2 Sx", "T2 Dx", "T1 Cen"],
+        "Linea Verticale": ["LV 2", "LV 1"],
+        "Linea Orizzontale": ["LO Sx", "LO Dx"],
+        "Singolo Centrale": ["Singolo"]
+    };
+
+    function updateBicchiereColpitoOptions() {
+        const formatoSelect = document.getElementById('formato');
+        const container = document.getElementById('bicchiere_colpito_container');
+        const selectedFormato = formatoSelect.value;
+        const optionsArray = bicchieriOptions[selectedFormato] || bicchieriOptions["Piramide"];
+
+        container.innerHTML = ''; 
+
+        // Genera i bicchieri in ordine inverso (dal basso verso l'alto come visuale)
+        // Oppure standard, qui usiamo l'ordine array
+        const displayArray = [...optionsArray].reverse();
+
+        displayArray.forEach(function(optionText, index) {
+            const div = document.createElement('div');
+            div.className = 'cup-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'bicchiere_colpito';
+            checkbox.value = optionText;
+            checkbox.id = 'cup_' + index;
+            checkbox.onclick = checkLimit; 
+
+            // Se il nome del bicchiere è presente nell'array salvato, selezionalo
+            if (savedCupsArray.includes(optionText)) {
+                checkbox.checked = true;
+            }
+
+            const label = document.createElement('label');
+            label.htmlFor = 'cup_' + index;
+            label.setAttribute('data-name', optionText); // Per mostrare il nome sotto
+
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            container.appendChild(div);
+        });
+    }
+
+    function checkLimit() {
+        const checked = document.querySelectorAll('input[name="bicchiere_colpito"]:checked');
+        const limit = getCurrentLimit();
+        // Se provi a selezionarne più del limite, deseleziona l'ultimo
+        if (checked.length > limit) {
+            this.checked = false; 
+            alert("Hai selezionato 'Multiplo: " + limit + "'. Non puoi selezionare più bicchieri.");
+        }
+    }
+
+    function getCurrentLimit() {
+        if (document.getElementById('multi_doppio').checked) return 2;
+        if (document.getElementById('multi_triplo').checked) return 3;
+        if (document.getElementById('multi_quadruplo').checked) return 4;
+        if (document.getElementById('multi_quintuplo').checked) return 5;
+        if (document.getElementById('multi_sestuplo').checked) return 6;
+        return 1; 
+    }
+
+    function handleLogic() {
+        const isHit = document.getElementById('opt_centro').checked;
+        const dynamicSection = document.getElementById('dynamic-hit-section');
+        const limitLabel = document.getElementById('max-selection-label');
+        
+        if (isHit) {
+            dynamicSection.style.display = 'block';
+            const limit = getCurrentLimit();
+            limitLabel.textContent = "Max " + limit;
+        } else {
+            dynamicSection.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateBicchiereColpitoOptions();
+        handleLogic();
+    });
+</script>
+
+</body>
+</html>

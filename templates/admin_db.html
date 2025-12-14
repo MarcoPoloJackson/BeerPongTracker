@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Viewer Database Completo</title>
+    <style>
+        body { font-family: 'Courier New', monospace; padding: 20px; background: #f4f4f9; color: #333; }
+        h1 { text-align: center; color: #2c3e50; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        .back-link { display: inline-block; margin-bottom: 20px; padding: 10px 15px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .back-link:hover { background: #2980b9; }
+
+        /* Contenitore per ogni FILE DATABASE (.db) */
+        .db-file-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 40px;
+            border: 2px solid #2c3e50;
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        .db-title { 
+            margin-top: 0; 
+            background: #2c3e50; 
+            color: #fff; 
+            padding: 10px; 
+            font-size: 1.2em;
+            border-radius: 4px;
+        }
+
+        /* Contenitore per ogni TABELLA dentro il DB */
+        .table-section { margin-top: 20px; border-left: 4px solid #e67e22; padding-left: 15px; }
+        .table-name { color: #e67e22; font-weight: bold; font-size: 1.1em; margin-bottom: 5px; text-transform: uppercase; }
+
+        /* Stile Tabelle Dati */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 5px; background: #fff; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #ecf0f1; font-weight: bold; color: #2c3e50; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        tr:hover { background: #ffffcc; }
+        
+        .empty-msg { color: #e74c3c; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <a href="/" class="back-link">⬅ Torna alla Home</a>
+    <h1>📂 DATABASE VIEWER (Cartella: Dati/)</h1>
+
+    {% if not full_db %}
+        <div class="db-file-section">
+            <p class="empty-msg" style="text-align:center;">Nessun database trovato nella cartella Dati.</p>
+        </div>
+    {% endif %}
+
+    {% for filename, tables in full_db.items() %}
+        <div class="db-file-section">
+            <div class="db-title">📄 FILE: {{ filename }}</div>
+
+            {% if tables|length == 0 %}
+                <p class="empty-msg">Il file è vuoto o non contiene tabelle leggibili.</p>
+            {% else %}
+                
+                {% for table_name, data in tables.items() %}
+                    <div class="table-section">
+                        <div class="table-name">Tabella: {{ table_name }} ({{ data.rows|length }} righe)</div>
+                        
+                        {% if data.rows|length > 0 %}
+                            <table>
+                                <thead>
+                                    <tr>
+                                        {% for col in data.cols %}
+                                            <th>{{ col }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in data.rows %}
+                                        <tr>
+                                            {% for cell in row %}
+                                                <td>{{ cell }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <p class="empty-msg"> - Tabella vuota - </p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+            {% endif %}
+        </div>
+    {% endfor %}
+
+</body>
+</html>

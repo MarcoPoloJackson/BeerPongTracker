@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titolo }}</title>
+    <style>
+        /* --- BASE & TYPOGRAPHY (WHITE MODE STANDARD) --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 10px; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; padding-bottom: 80px; }
+        h1 { text-align: center; color: #2c3e50; font-size: 1.5em; margin-bottom: 5px; }
+        
+        /* --- NAVIGATION --- */
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .btn-back { text-decoration: none; color: #555; font-weight: bold; background: white; padding: 8px 15px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 0.9em; }
+        .btn-db { text-decoration: none; background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 1.2em; transition: transform 0.2s; color: #333; }
+        .btn-db:hover { transform: scale(1.1); background: #f9f9f9; }
+        .nav-header > div { color: #34495e; }
+
+        /* --- INFO CARDS --- */
+        .info-card { background: white; border-radius: 15px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border-left: 5px solid #ccc; font-size: 0.9em; }
+        .info-team { border-color: #2196F3; background: #e3f2fd; color: #0d47a1; text-align: center; border: 1px solid #2196F355; }
+        .info-card strong { color: #333; }
+        .btn-force { background: #ffc107; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; color: #333; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* --- FORM STYLING --- */
+        * { box-sizing: border-box; }
+        form { background: white; border-radius: 25px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); width: 100%; }
+        .section-title { text-align: center; font-size: 0.8em; text-transform: uppercase; color: #aaa; margin-bottom: 8px; font-weight: 800; letter-spacing: 1.5px; margin-top: 10px; }
+        .form-group { margin-bottom: 20px; width: 100%; }
+
+        /* --- RADIO BUTTONS (RESULT) - UNIFORMI E A COLORI --- */
+        .result-options { 
+            display: flex; 
+            flex-direction: row; 
+            gap: 12px; 
+            width: 100%; 
+        }
+        .result-options input[type="radio"] { display: none; } 
+        
+        /* Stile BASE per tutti (Non selezionati) */
+        .result-label { 
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16px 6px;
+    border-radius: 18px;
+
+    /* BORDO PIÙ SCURO E PRESENTE */
+    border: 2px solid #b0bec5;
+
+    background: linear-gradient(180deg, #ffffff 0%, #f7f9fa 100%);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+
+    font-weight: 900;
+    color: #7f8c8d;
+
+    box-shadow:
+        0 3px 6px rgba(0,0,0,0.05),
+        inset 0 0 0 1px rgba(255,255,255,0.6);
+}
+
+
+        /* Icone (A COLORI ma leggermente trasparenti) */
+        .result-icon { 
+    font-size: 1.7em;
+    margin-bottom: 6px;
+    opacity: 0.85;
+    transition: all 0.2s;
+}
+
+
+        .result-label:hover { 
+    transform: translateY(-2px);
+    border-color: #78909c;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+}
+
+
+        /* --- STATI SELEZIONATI (Stessa struttura, colori diversi) --- */
+
+        /* MISS (Grigio neutro) */
+#opt_miss:checked + label { 
+    background: #f8f9fa;
+    border-color: #bfc0c0;
+    color: #555;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+#opt_miss:checked + label .result-icon { opacity: 1; transform: scale(1.1); }
+
+/* BORDO (Arancione) */
+#opt_bordo:checked + label { 
+    background: #fff3e0; 
+    border-color: #ff9800;
+    color: #ef6c00;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+}
+#opt_bordo:checked + label .result-icon { opacity: 1; transform: scale(1.15); }
+
+/* CENTRO (Verde) – già presente, ma controlla che stia identato insieme */
+#opt_centro:checked + label { 
+    background: linear-gradient(180deg, #e8f5e9, #c8e6c9);
+    border-color: #2ecc71;
+    color: #1b5e20;
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+}
+
+        
+        #opt_centro:checked + label .result-icon { opacity: 1; transform: scale(1.15); }
+
+        /* --- INPUTS & VISUALS --- */
+        select, input[type="text"], textarea { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #f0f2f5; background: #f8f9fa; font-size: 16px; font-weight: 600; color: #333; appearance: none; text-align: center; transition: border-color 0.3s; }
+        select:focus, input[type="text"]:focus, textarea:focus { border-color: #2196F3; outline: none; background: #fff; }
+        
+        .multi-group { display: flex; flex-wrap: wrap; gap: 5px; width: 100%; justify-content: center; margin-top: 10px; }
+        .multi-group input { display: none; }
+        .multi-label { background: #fff; border: 1px solid #ddd; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; cursor: pointer; color: #555; transition: all 0.2s; }
+        .multi-group input:checked + label { background: #673ab7; color: white; border-color: #673ab7; font-weight: bold;}
+        
+        /* --- TABLE VISUALIZER (DARK MODE - AGGIORNATO) --- */
+        .game-table-visual { 
+            background: #2c3e50; border-radius: 15px; border: 4px solid #34495e; 
+            padding: 15px; position: relative; display: flex; flex-direction: column; 
+            justify-content: space-between; width: 100%; min-height: 420px; 
+            margin-top: 5px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7); overflow: hidden; 
+        }
+        .game-table-visual::after { content: ''; position: absolute; top: 10px; bottom: 10px; left: 50%; width: 2px; background: rgba(255, 255, 255, 0.2); transform: translateX(-50%); pointer-events: none; border-radius: 1px; }
+        
+        .side-container { display: flex; flex-direction: column; align-items: center; position: relative; z-index: 2; width: 100%; }
+        .their-side { margin-bottom: auto; padding-bottom: 10px; }
+
+        
+        .side-label { color: rgba(255,255,255,0.6); font-weight: 700; text-transform: uppercase; font-size: 0.7em; margin-bottom: 8px; letter-spacing: 1px; pointer-events: none; }
+        .cup-row { display: flex; justify-content: center; gap: 7px; margin-bottom: 4px; pointer-events: none; }
+        .their-side .cup-row { margin-bottom: 0; margin-top: 4px; } 
+
+        .cup-circle { 
+            width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.6em; font-weight: bold; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: transform 0.1s, border-color 0.2s, background-color 0.2s; 
+        }
+        
+        /* NUOVA CLASSE: Nasconde i bicchieri eliminati mantenendo lo spazio */
+        .cup-circle.eliminated { visibility: hidden; pointer-events: none; }
+
+        .their-side .cup-circle { background-color: #c0392b; border: 4px solid #e74c3c; color: transparent; pointer-events: none; opacity: 0.9; }
+        .their-side.active-target .cup-circle { pointer-events: auto; cursor: pointer; opacity: 1; }
+        .their-side.active-target .cup-circle:hover { transform: scale(1.1); border-color: #f0f0f0; }
+        .their-side .cup-circle.selected { background-color: #5cb85c !important; border-color: #27ae60 !important; transform: scale(0.9) rotate(5deg); opacity: 1; box-shadow: 0 0 15px rgba(92, 184, 92, 0.7); }
+        .their-side .cup-circle.selected::after { content: '✓'; color: white; font-size: 1.6em; pointer-events: none; }
+        .their-side .cup-circle input { display: none; }
+        .my-side .cup-circle { background-color: #2980b9; border: 4px solid #3498db; color: transparent; pointer-events: none; }
+
+        /* --- POSIZIONE & HISTORY (uguali a prima) --- */
+        .table-field-container { background: #f8f9fa; padding: 10px; border-radius: 15px; border: 2px solid #ddd; box-shadow: inset 0 0 5px rgba(0,0,0,0.1); position: relative; overflow: hidden; width: 100%; }
+        .positions-row { display: flex; gap: 8px; justify-content: space-between; position: relative; z-index: 2; width: 100%; }
+        .positions-row input[type="radio"] { display: none; }
+        .pos-pad { flex: 1; padding: 12px 5px; background: #fff; border: 2px solid #eee; border-radius: 10px; text-align: center; cursor: pointer; font-weight: 700; color: #555; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.8em; }
+        .pos-icon-big { font-size: 1.5em; margin-bottom: 2px; display: block; }
+        #pos_sinistra:checked + .pos-pad, #pos_centrale:checked + .pos-pad, #pos_destra:checked + .pos-pad { background: #3498db; color: white; border-color: #3498db; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4); transform: translateY(-2px); }
+
+        .history-section { margin-top: 30px; }
+        .history-list { list-style: none; padding: 0; }
+        .history-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid #ccc; position: relative; overflow: hidden; }
+        .border-miss { border-left-color: #95a5a6; }
+        .border-bordo { border-left-color: #ff9800; }
+        .border-centro { border-left-color: #2ecc71; }
+        .h-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .h-result { font-weight: 900; font-size: 1em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .h-time { font-size: 0.75em; color: #aaa; }
+        .h-detail { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+        .tag { font-size: 0.7em; padding: 3px 8px; border-radius: 6px; background: #f0f2f5; color: #555; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+        .tag-imp { background: #e3f2fd; color: #1565C0; }
+        .btn-del-history { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #e74c3c; font-size: 1.2em; cursor: pointer; opacity: 0.5; }
+        
+        /* SALVEZZA STYLES */
+        .redemption-active-me { background-color: #ffe6e6 !important; border: 4px solid #e74c3c; animation: pulse-red 1.5s infinite; }
+        .redemption-active-me .nav-header, .redemption-active-me form { background: #ffebeb; box-shadow: 0 0 20px rgba(231, 76, 60, 0.5); border: 2px solid #e74c3c; }
+        .redemption-title { color: #c0392b; font-size: 1.4em; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); margin-bottom: 10px; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.4); } 50% { box-shadow: 0 0 20px rgba(231, 76, 60, 0.8), 0 0 30px rgba(231, 76, 60, 0.6); } 100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.4); } }
+        .fade-in { animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* ==========================
+   TARGET MODE – DOPAMINA
+   ========================== */
+
+.their-side.active-target {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+
+    background:
+        radial-gradient(circle at center,
+            rgba(0, 255, 170, 0.25) 0%,
+            rgba(0, 255, 170, 0.15) 35%,
+            rgba(0, 0, 0, 0) 70%);
+
+    box-shadow:
+        inset 0 0 25px rgba(0, 255, 170, 0.35),
+        0 0 30px rgba(0, 255, 170, 0.25);
+
+    animation: targetGlow 1.6s ease-in-out infinite;
+}
+
+.their-side.active-target::before {
+    content: "";
+    position: absolute;
+    top: -60%;
+    left: -60%;
+    width: 220%;
+    height: 220%;
+
+    background: linear-gradient(
+        120deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.25) 45%,
+        rgba(0, 255, 170, 0.35) 50%,
+        rgba(255, 255, 255, 0.25) 55%,
+        transparent 70%
+    );
+
+    animation: scanSweep 2.8s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes targetGlow {
+    0% {
+        box-shadow:
+            inset 0 0 15px rgba(0, 255, 170, 0.2),
+            0 0 20px rgba(0, 255, 170, 0.2);
+    }
+    50% {
+        box-shadow:
+            inset 0 0 35px rgba(0, 255, 170, 0.5),
+            0 0 45px rgba(0, 255, 170, 0.6);
+    }
+    100% {
+        box-shadow:
+            inset 0 0 15px rgba(0, 255, 170, 0.2),
+            0 0 20px rgba(0, 255, 170, 0.2);
+    }
+}
+
+@keyframes scanSweep {
+    0% {
+        transform: translateX(-40%) translateY(-40%);
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(40%) translateY(40%);
+        opacity: 0;
+    }
+}
+
+        
+
+    </style>
+</head>
+
+<body class="{% if redemption_info and redemption_info.active and redemption_info.is_me %}redemption-active-me{% endif %}">
+
+<div class="container fade-in">
+    <div class="nav-header">
+        <a href="{{ url_for('select_player') }}" class="btn-back">⬅ Esci</a>
+        <div style="font-weight: 800; font-size: 1.1em; color: #34495e;">{{ player_name }}</div>
+        <a href="{{ url_for('database_viewer') }}" class="btn-db" title="Vedi Database">🗄️</a>
+    </div>
+
+    {% if is_match %}
+        <div class="info-card info-team">
+            <strong>🔗 SQUADRA:</strong> Con <strong>{{ teammate }}</strong>
+        </div>
+    {% endif %}
+
+    {% if waiting_for_opponent and waiting_for_opponent > 0 %}
+    <div class="info-card" style="background:#e3f2fd; border-left: 5px solid #2196F3; color:#0d47a1; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:1.5em;">🎯</span>
+            <div>
+                <strong>COLPITO!</strong>
+                <span style="font-size:0.9em; display:block;">Togli <b>{{ waiting_for_opponent }}</b> agli avversari.</span>
+            </div>
+        </div>
+        <form action="{{ url_for('force_update', player_name=player_name) }}" method="POST" style="margin:0; padding:0; width:auto; box-shadow:none; background:transparent;">
+            <button type="submit" class="btn-force" style="background:#2196F3; color:white; white-space:nowrap;">SCALA</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if redemption_info and redemption_info.active %}
+        {% if redemption_info.is_me %}
+            <div style="text-align:center; margin-top: -10px; margin-bottom: 20px; padding: 15px; border-radius: 15px; background: #991111; color: white; box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);">
+                <div class="redemption-title" style="color: white; text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">🔥 TIRI SALVEZZA! 🔥</div>
+                <div style="font-size:1.2em; font-weight: bold;">
+                    RIMASTI: <b>{{ redemption_info.shots_left }}</b>
+                </div>
+                <div style="font-size: 0.9em; opacity: 0.9; margin-top: 5px; color: #ffdddd;">
+                    NON C'È PIÙ TEMPO. DEVI FARE CENTRO.
+                </div>
+            </div>
+        {% else %}
+            <div class="info-card" style="background:#ffebee; border-left: 5px solid #c62828; color:#b71c1c;">
+                <div style="text-align:center;">
+                    <strong style="font-size:1.1em; text-transform:uppercase;">🛡️ AVVERSARI IN SALVEZZA 🛡️</strong>
+                    <div style="margin-top:2px; font-size:1em;">
+                        Tocca a Loro! Rimasti: <b>{{ redemption_info.shots_left }}</b>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    {% if match_status == 'finished' and match and match.id %}
+    <div class="info-card" style="background:#e8f5e9; border-left: 5px solid #2ecc71; color:#1b5e20; text-align:center; padding:20px;">
+        <strong style="font-size:1.4em; display:block; margin-bottom:10px;">PARTITA TERMINATA!</strong>
+        
+        <a href="{{ url_for('rematch', match_id=match.id) }}" style="
+            display: inline-block;
+            padding: 12px 25px;
+            background: #2ecc71;
+            color: white;
+            border-radius: 10px;
+            font-weight: bold;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4);
+            transition: transform 0.2s;
+        ">
+            🔄 NUOVA PARTITA (REMATCH)
+        </a>
+        
+        <a href="{{ url_for('end_match', match_id=match.id) }}" style="
+            display: block;
+            margin-top: 10px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            text-decoration: underline;
+        ">
+            Cancella e archivia questa partita
+        </a>
+    </div>
+    {% endif %}
+    
+
+    <form action="{{ url_for('add_record', player_name=player_name) }}" method="POST" id="gameForm" {% if match_status == 'finished' %}style="display:none;"{% endif %}>
+        
+        <div class="form-group">
+            <div class="section-title">Risultato del Tiro</div>
+            <div class="result-options">
+                <input type="radio" id="opt_miss" name="risultato_tiro" value="Miss" onclick="handleResultClick('Miss')">
+                <label for="opt_miss" class="result-label"><span class="result-icon">💨</span>MISS</label>
+                
+                <input type="radio" id="opt_bordo" name="risultato_tiro" value="Bordo" onclick="handleResultClick('Bordo')">
+                <label for="opt_bordo" class="result-label"><span class="result-icon">🧱</span>BORDO</label>
+                
+                <input type="radio" id="opt_centro" name="risultato_tiro" value="Centro" onclick="handleResultClick('Centro')">
+                <label for="opt_centro" class="result-label"><span class="result-icon">🎯</span>CENTRO</label>
+            </div>
+        </div>
+
+        <div id="dynamic-hit-section" style="display: none;">
+            <div class="multi-group">
+                    <input type="radio" id="multi_none" name="bicchieri_multipli" value="" onchange="handleLogic()" checked>
+                    <input type="radio" id="multi_doppio" name="bicchieri_multipli" value="Doppio" onchange="handleLogic()">
+                    <label for="multi_doppio" class="multi-label">Doppio (2)</label>
+
+                    <input type="radio" id="multi_triplo" name="bicchieri_multipli" value="Triplo" onchange="handleLogic()">
+                    <label for="multi_triplo" class="multi-label">Triplo (3)</label>
+
+                    <input type="radio" id="multi_quadruplo" name="bicchieri_multipli" value="Quadruplo" onchange="handleLogic()">
+                    <label for="multi_quadruplo" class="multi-label">Quad (4)</label>
+                    
+                    <input type="radio" id="multi_quintuplo" name="bicchieri_multipli" value="Quintuplo" onchange="handleLogic()">
+                    <label for="multi_quintuplo" class="multi-label">Quint (5)</label>
+                    
+                    <input type="radio" id="multi_sestuplo" name="bicchieri_multipli" value="Sestuplo" onchange="handleLogic()">
+                    <label for="multi_sestuplo" class="multi-label">Sest (6)</label>
+                    
+                    <button type="button" onclick="resetMultipli()" style="background:none; border:none; color:#999; font-size:0.8em; text-decoration:underline; cursor:pointer;">Reset</button>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top:20px;">
+            <div class="section-title">FORMATO</div>
+            <div style="margin-bottom:8px;">
+                <select id="formato" name="formato" onchange="updateCupsVisuals()" required {% if format_locked %}disabled{% endif %} style="text-align-last:center;">
+                    <option value="Piramide">Piramide 🔺</option>
+                </select>
+                {% if format_locked %}
+                    <input type="hidden" name="formato" value="{{ defaults.formato }}">
+                {% endif %}
+            </div>
+
+            <div class="game-table-visual">
+                <div class="side-container their-side" id="their-cups-container">
+                    <span class="side-label">Loro (Bersaglio)</span>
+                    <div id="their-cups-grid"></div>
+                </div>
+
+                <div class="side-container my-side">
+                    <div id="my-cups-grid"></div>
+                    <span class="side-label">Noi</span>
+                </div>
+            </div>
+            <div style="text-align:center; font-size:0.8em; color:#999; margin-top:5px;">
+                <span id="instruction-text">Seleziona "Centro" per interagire</span>
+            </div>
+        </div>
+
+        <input type="hidden" id="numero_bicchieri" name="numero_bicchieri" value="{{ defaults.numero_bicchieri }}">
+
+        <div class="form-group">
+            <div class="section-title">Bevanda</div>
+            <input type="text" id="bevanda" name="bevanda" value="{{ defaults.bevanda }}" placeholder="Es. Birra">
+        </div>
+
+        <div class="form-group">
+            <div class="section-title">Note</div>
+            <textarea id="note" name="note" rows="1" placeholder="Note opzionali..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <div class="section-title">Postazione</div>
+            <div class="table-field-container">
+                <div class="positions-row">
+                    <input type="radio" id="pos_sinistra" name="postazione" value="Sinistra" {% if defaults.postazione == 'Sinistra' %}checked{% endif %}>
+                    <label for="pos_sinistra" class="pos-pad"><span class="pos-icon-big">⬅️</span>SX</label>
+
+                    <input type="radio" id="pos_centrale" name="postazione" value="Centrale" {% if defaults.postazione == 'Centrale' %}checked{% endif %}>
+                    <label for="pos_centrale" class="pos-pad"><span class="pos-icon-big">⏺️</span>CEN</label>
+
+                    <input type="radio" id="pos_destra" name="postazione" value="Destra" {% if defaults.postazione == 'Destra' %}checked{% endif %}>
+                    <label for="pos_destra" class="pos-pad"><span class="pos-icon-big">➡️</span>DX</label>
+                </div>
+            </div>
+        </div>
+
+        <input type="hidden" id="data" name="data">
+        <input type="hidden" id="ora" name="ora">
+
+    </form>
+    
+    <div class="history-section">
+        <div class="section-title" style="margin-bottom:10px;">Ultimi Tiri</div>
+        <ul class="history-list">
+            {% for riga in dati %}
+                {% set border_class = 'border-miss' %}
+                {% if riga["Centro"] == 'Sì' %}{% set border_class = 'border-centro' %}
+                {% elif riga["Bordo"] == 'Sì' %}{% set border_class = 'border-bordo' %}{% endif %}
+
+                <li class="history-card {{ border_class }}">
+                    <div class="h-header">
+                        <span class="h-result" style="color: {% if riga['Centro']=='Sì' %}#2e7d32{% elif riga['Bordo']=='Sì' %}#ef6c00{% else %}#7f8c8d{% endif %};">
+                            {% if riga["Centro"] == 'Sì' %}🎯 CENTRO
+                            {% elif riga["Bordo"] == 'Sì' %}🧱 BORDO
+                            {% else %}💨 MISS{% endif %}
+                        </span>
+                        
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="h-time">{{ riga["Ora"] }}</span>
+                            <a href="{{ url_for('edit_record', player_name=player_name, id=riga['ID']) }}" style="text-decoration: none; color: #1565C0; font-size: 1em;">✏️</a>
+                            <form method="POST" action="{{ url_for('delete_record', player_name=player_name, id=riga['ID']) }}" onsubmit="return confirm('Cancellare ID {{ riga["ID"] }}?');" style="box-shadow:none; padding:0; display:inline; background:transparent; width:auto;">
+                                <button type="submit" class="btn-del-history">&times;</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div style="font-size:0.9em; color:#444;">
+                        {% if riga["Noi"] != "-" %}
+                            <div style="font-size:0.85em; background:#f5f5f5; padding:4px 8px; border-radius:10px; display:inline-block; margin-bottom:5px;">
+                                Noi <b>{{ riga["Noi"] }}</b> - Loro <b>{{ riga["Loro"] }}</b>
+                            </div>
+                        {% endif %}
+                        {% if riga["Centro"] == "Sì" %}
+                            <div style="color: #2e7d32; font-weight:bold;">
+                                Colpiti: {{ riga["Colpiti"] }}
+                            </div>
+                        {% endif %}
+                        <div class="h-detail">
+                            <span class="tag">📍 {{ riga["Posizione"] }}</span>
+                            <span class="tag">🍺 {{ riga["Bevanda"] }}</span>
+                            {% if riga["Salvezza"] == "Sì" %}<span class="tag tag-imp">🛡️ Salvezza</span>{% endif %}
+                            {% if riga["Multipli"] != "-" %} <span class="tag" style="background:#e8f5e9; color:#2e7d32;">⚡ {{ riga["Multipli"] }}</span> {% endif %}
+                        </div>
+                        {% if riga["Note"] %}<div style="margin-top:5px; font-style:italic; font-size:0.85em; color:#777;">"{{ riga["Note"] }}"</div>{% endif %}
+                    </div>
+                </li>
+            {% else %}
+                <li style="text-align:center; color:#ccc; margin-top:20px;">Nessun tiro recente.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
+<script>
+    // Recupera liste attive dal server
+    const activeCupsOpponent = {{ defaults.opp_active_cups | tojson | default('[]') }};
+    const activeCupsMe = {{ defaults.my_active_cups | tojson | default('[]') }};
+    
+    // Configurazione server (Stato salvato nel DB)
+    const serverCupsTarget = "{{ defaults.numero_bicchieri }}"; 
+    const serverOppFormat = "{{ defaults.formato }}"; // Il formato che il DB conosce
+    const serverMyFormat = "{{ defaults.my_formato }}";
+
+    // Configurazione Formati RIGOROSA per il MENU A TENDINA
+    // Formato: [Numero ESATTO di bicchieri per cui è ottimizzato]
+    const FORMAT_LIMITS = {
+        "Piramide":          { min_cups: 1, max_cups: 6 }, // Piramide è sempre disponibile
+        "Rombo":             { min_cups: 4, max_cups: 4 },
+        "Triangolo":         { min_cups: 3, max_cups: 3 },
+        "Linea Verticale":   { min_cups: 2, max_cups: 2 },
+        "Linea Orizzontale": { min_cups: 2, max_cups: 2 },
+        "Singolo Centrale":  { min_cups: 1, max_cups: 1 }
+    };
+    
+    // Mappa per i nomi visualizzati (non cambia)
+    const formatDisplayNames = { "Piramide": "Piramide 🔺", "Rombo": "Rombo 💠", "Triangolo": "Triangolo 📐", "Linea Verticale": "Linea Vert. ❙", "Linea Orizzontale": "Linea Oriz. ━", "Singolo Centrale": "Singolo ⏺" };
+    
+    // Mappa per i nomi usati nel codice (non cambia)
+    const visualLayouts = {
+        "Piramide": [ ["3 Sx", "3 Cen", "3 Dx"], ["2 Sx", "2 Dx"], ["1 Cen"] ],
+        "Rombo": [ ["R3 Cen"], ["R2 Sx", "R2 Dx"], ["R1 Cen"] ],
+        "Triangolo": [ ["T2 Sx", "T2 Dx"], ["T1 Cen"] ],
+        "Linea Verticale": [ ["LV 2"], ["LV 1"] ],
+        "Linea Orizzontale": [ ["LO Sx", "LO Dx"] ],
+        "Singolo Centrale": [ ["Singolo"] ]
+    };
+    
+
+    function getLayoutByFormat(fmt) {
+        return visualLayouts[fmt] || visualLayouts["Piramide"];
+    }
+
+    function updateAvailableFormats() {
+    // 1. Determina il numero di bicchieri REALI
+    let cupsVal = 1;
+    const isMatchActive = {{ is_match | tojson }};
+    const manualSelect = document.getElementById('manual_cup_select');
+
+    if (isMatchActive) {
+        if (activeCupsOpponent && Array.isArray(activeCupsOpponent)) {
+            cupsVal = activeCupsOpponent.length;
+        } else {
+            cupsVal = parseInt(serverCupsTarget) || 6;
+        }
+        const manualCountDiv = document.getElementById('manual-cup-count');
+        if (manualCountDiv) manualCountDiv.style.display = 'none';
+
+    } else {
+        if (manualSelect) {
+            cupsVal = parseInt(manualSelect.value) || 6;
+            document.getElementById('numero_bicchieri').value = cupsVal;
+        } else {
+             cupsVal = parseInt(document.getElementById('numero_bicchieri').value) || 6;
+        }
+    }
+    
+    const formatSelect = document.getElementById('formato');
+    const currentValue = formatSelect.value;
+    const isLocked = formatSelect.disabled;
+    
+    formatSelect.innerHTML = '';
+    
+    // --- PUNTO CHIAVE: FILTRAGGIO STRETTO ---
+    let availableFormats = [];
+    
+    for (const [formatName, limits] of Object.entries(FORMAT_LIMITS)) {
+        if (formatName === "Piramide") {
+            // La Piramide è SEMPRE disponibile se ci sono bicchieri
+            if (cupsVal >= 1) availableFormats.push(formatName);
+        } else {
+            // I formati speciali (Rombo, Triangolo, Singolo) sono disponibili
+            // SOLO se il conteggio è ESATTAMENTE quello richiesto (o Piramide è già stata scelta)
+            if (cupsVal >= limits.min_cups && cupsVal <= limits.max_cups) {
+                 availableFormats.push(formatName);
+            }
+        }
+    }
+    
+    // Riordina (Piramide, poi il resto in ordine alfabetico/logico)
+    availableFormats.sort((a, b) => {
+        if (a === "Piramide") return -1;
+        if (b === "Piramide") return 1;
+        return a.localeCompare(b); // Ordina il resto alfabeticamente
+    });
+
+    if (cupsVal === 0 && !availableFormats.includes("Piramide")) {
+        availableFormats = ["Piramide"];
+    }
+    
+    // 3. Popola il menu con la lista filtrata
+    availableFormats.forEach(fmt => {
+        const opt = document.createElement('option');
+        opt.value = fmt; 
+        opt.text = formatDisplayNames[fmt] || fmt;
+        formatSelect.appendChild(opt);
+    });
+
+    // 4. Gestione selezione (Logica ANTI-SALTO AUTOMATICO)
+    if (isLocked) {
+        // Logica bloccata (corretta)
+        let found = false;
+        for(let i=0; i<formatSelect.options.length; i++){
+            if(formatSelect.options[i].value === serverOppFormat) {
+                formatSelect.value = serverOppFormat;
+                found = true;
+            }
+        }
+        if (!found) {
+            const opt = document.createElement('option');
+            opt.value = serverOppFormat; opt.text = serverOppFormat;
+            formatSelect.appendChild(opt);
+            formatSelect.value = serverOppFormat;
+        }
+    } else {
+        // Se libero: impedisce il cambio automatico finché l'utente non interagisce.
+        
+        // Priorità 1: Mantenere il formato salvato (serverOppFormat) se è ancora nella lista valida.
+        if (availableFormats.includes(serverOppFormat)) {
+             formatSelect.value = serverOppFormat;
+        } 
+        // Priorità 2: Mantenere il formato corrente (currentValue) se è valido
+        else if (availableFormats.includes(currentValue)) {
+            formatSelect.value = currentValue;
+        }
+        // Priorità 3 (Fallback obbligatorio): Se il formato è Rombo/Triangolo ed è sparito,
+        // o se siamo in una nuova situazione (es. 1 bicchiere), si seleziona il primo valido (Piramide).
+        else {
+             formatSelect.value = availableFormats[0];
+        }
+    }
+
+    // 5. Aggiorna la grafica (Disegna i bicchieri)
+    updateCupsVisuals();
+}
+
+    function updateCupsVisuals() {
+        const selectedOppFormat = document.getElementById('formato').value;
+        
+        // --- MODIFICA CRUCIALE QUI ---
+        // Se il formato selezionato è UGUALE a quello nel DB, usa la lista dei bicchieri rimasti.
+        // Se è DIVERSO (l'hai appena cambiato), passa 'null' per dire "Mostrali tutti (reset visuale)".
+        let listToUseOpponent = (selectedOppFormat === serverOppFormat) ? activeCupsOpponent : null;
+
+        renderGrid(document.getElementById('their-cups-grid'), selectedOppFormat, listToUseOpponent, true);
+        
+        // Per noi, il formato non cambia dinamicamente dalla select, quindi usiamo sempre quello server
+        renderGrid(document.getElementById('my-cups-grid'), serverMyFormat, activeCupsMe, false);
+        
+        handleLogic();
+    }
+
+    function renderGrid(container, format, activeList, isOpponent) {
+        container.innerHTML = '';
+        let layoutRows = getLayoutByFormat(format);
+        
+        // Inverti per Noi (Base in basso)
+        let rowsToRender = isOpponent ? layoutRows : [...layoutRows].reverse();
+
+        rowsToRender.forEach(row => {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'cup-row';
+            row.forEach(cupName => {
+                const circle = document.createElement('div');
+                circle.className = 'cup-circle';
+                
+                // --- LOGICA MODIFICATA ---
+                // Se activeList è null, significa "Mostra tutto" (nuovo formato).
+                // Se activeList esiste, controlliamo se il bicchiere è presente.
+                if (activeList !== null && Array.isArray(activeList) && !activeList.includes(cupName)) {
+                    circle.classList.add('eliminated');
+                }
+                
+                if (isOpponent) {
+                    circle.setAttribute('onclick', 'toggleCupSelection(this)');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox'; checkbox.name = 'bicchiere_colpito'; checkbox.value = cupName;
+                    circle.appendChild(checkbox);
+                }
+                rowDiv.appendChild(circle);
+            });
+            container.appendChild(rowDiv);
+        });
+    }
+
+    // ... (Le altre funzioni toggleCupSelection, getCurrentLimit, handleResultClick, handleLogic rimangono identiche) ...
+    
+    window.toggleCupSelection = function(circleElement) {
+        const isHit = document.getElementById('opt_centro').checked;
+        if (!isHit) {
+            const instr = document.getElementById('instruction-text');
+            instr.innerText = "⚠️ SELEZIONA PRIMA 'CENTRO'!"; instr.style.color = '#e74c3c';
+            setTimeout(() => { instr.innerText = "Seleziona 'Centro' per interagire"; instr.style.color = '#999'; }, 1000);
+            return; 
+        }
+        const checkbox = circleElement.querySelector('input');
+        if (!checkbox) return; 
+        const limit = getCurrentLimit();
+
+        if (limit === 1) {
+            document.querySelectorAll('input[name="bicchiere_colpito"]').forEach(el => { el.checked = false; });
+            document.querySelectorAll('.their-side .cup-circle').forEach(c => c.classList.remove('selected'));
+            checkbox.checked = true;
+            circleElement.classList.add('selected');
+            setTimeout(() => { document.getElementById('gameForm').submit(); }, 50); 
+            return;
+        }
+        const willBeSelected = !checkbox.checked;
+        let currentlyChecked = document.querySelectorAll('input[name="bicchiere_colpito"]:checked').length;
+        if (willBeSelected && currentlyChecked >= limit) {
+            alert("Hai selezionato 'Multiplo: " + limit + "'. Non puoi selezionarne di più."); return;
+        }
+        checkbox.checked = willBeSelected;
+        if (willBeSelected) circleElement.classList.add('selected'); 
+        else circleElement.classList.remove('selected');
+        
+        const newCount = document.querySelectorAll('input[name="bicchiere_colpito"]:checked').length;
+        if (newCount === limit) { setTimeout(() => { document.getElementById('gameForm').submit(); }, 300); }
+    };
+
+    function getCurrentLimit() {
+        if (document.getElementById('multi_doppio').checked) return 2;
+        if (document.getElementById('multi_triplo').checked) return 3;
+        if (document.getElementById('multi_quadruplo').checked) return 4;
+        if (document.getElementById('multi_quintuplo').checked) return 5;
+        if (document.getElementById('multi_sestuplo').checked) return 6;
+        return 1;
+    }
+
+    window.handleResultClick = function(value) {
+        handleLogic();
+        if (value !== 'Centro') { document.getElementById('gameForm').submit(); }
+    };
+
+    window.handleLogic = function() {
+        const isHit = document.getElementById('opt_centro').checked;
+        const dynamicSection = document.getElementById('dynamic-hit-section');
+        const theirContainerOuter = document.getElementById('their-cups-container');
+        const instr = document.getElementById('instruction-text');
+        if (isHit) {
+            dynamicSection.style.display = 'block';
+            theirContainerOuter.classList.add('active-target');
+            instr.innerText = "TOCCA IL BICCHIERE ELIMINATO"; instr.style.color = "#2ecc71"; instr.style.fontWeight = "bold";
+        } else {
+            dynamicSection.style.display = 'none';
+            theirContainerOuter.classList.remove('active-target');
+            instr.innerText = "Seleziona 'Centro' per interagire"; instr.style.color = "#999"; instr.style.fontWeight = "normal";
+            resetMultipli(); 
+        }
+    };
+
+    function resetMultipli() {
+        document.getElementById('multi_none').checked = true;
+        const circles = document.querySelectorAll('.their-side .cup-circle');
+        circles.forEach(c => { c.classList.remove('selected'); const cb = c.querySelector('input'); if(cb) cb.checked = false; });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateAvailableFormats();
+        // Check iniziale se il formato salvato è valido per il numero di bicchieri
+        const fmtSelect = document.getElementById('formato');
+        if(fmtSelect.value !== serverOppFormat && !fmtSelect.disabled) {
+             let isValidFmt = false; 
+             for(let i=0; i<fmtSelect.options.length; i++){ if(fmtSelect.options[i].value === serverOppFormat) isValidFmt = true; }
+             if(isValidFmt) { fmtSelect.value = serverOppFormat; } 
+        }
+        updateCupsVisuals(); 
+        handleLogic();
+    });
+</script>
+</body>
+</html>

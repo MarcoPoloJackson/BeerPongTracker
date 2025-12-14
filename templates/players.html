@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Giocatori</title>
+    <style>
+        /* --- BASE STYLES --- */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            margin: 0; padding: 20px; color: #333;
+            min-height: 90vh; display: flex; justify-content: center; align-items: flex-start;
+        }
+
+        .container { 
+            width: 100%; max-width: 800px; margin-top: 40px;
+            background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 25px; padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        h1 { 
+            text-align: center; color: #2c3e50; margin-bottom: 10px; 
+            font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        }
+        
+        .subtitle {
+            text-align: center; color: #7f8c8d; margin-bottom: 40px; font-size: 0.9em;
+        }
+
+        /* --- ADD PLAYER FORM --- */
+        .add-player-wrapper {
+            background: white;
+            padding: 10px;
+            border-radius: 50px;
+            display: flex;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .add-player-wrapper:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.15);
+            border-color: #3498db;
+        }
+
+        .input-player {
+            flex: 1;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1.1em;
+            outline: none;
+            background: transparent;
+            color: #333;
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 10px rgba(41, 128, 185, 0.3);
+        }
+        .btn-add:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(41, 128, 185, 0.4);
+        }
+
+        /* --- PLAYERS GRID --- */
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .player-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        
+        .player-card:hover {
+            transform: translateY(-3px);
+            background: white;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+            border-color: #3498db;
+        }
+
+        .player-name {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1.05em;
+        }
+        
+        .player-icon {
+            margin-right: 10px;
+            color: #bdc3c7;
+        }
+
+        .btn-delete {
+            background: #ffebee;
+            color: #c62828;
+            border: none;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.2em;
+        }
+        .btn-delete:hover {
+            background: #c62828;
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        /* --- FOOTER --- */
+        .footer-nav { margin-top: 40px; text-align: center; }
+        .btn-back { 
+            text-decoration: none; color: #7f8c8d; font-weight: bold; 
+            padding: 10px 20px; border-radius: 20px; transition: all 0.2s; 
+            border: 1px solid transparent;
+        }
+        .btn-back:hover { color: #333; background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); }
+
+        /* Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .empty-list {
+            grid-column: 1 / -1;
+            text-align: center; color: #999; font-style: italic; padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gestione Giocatori</h1>
+    <div class="subtitle">Aggiungi o rimuovi i partecipanti al torneo</div>
+
+    <form action="{{ url_for('add_player') }}" method="POST" autocomplete="off">
+        <div class="add-player-wrapper">
+            <input type="text" name="player_name" class="input-player" placeholder="Nome del nuovo giocatore..." required autofocus>
+            <button type="submit" class="btn-add">Aggiungi ＋</button>
+        </div>
+    </form>
+
+    <div class="players-grid">
+        {% for player in players %}
+        <div class="player-card">
+            <div style="display: flex; align-items: center;">
+                <span class="player-icon">👤</span>
+                <span class="player-name">{{ player.name }}</span>
+            </div>
+            
+            <form action="{{ url_for('delete_player', id=player.id) }}" method="POST" onsubmit="return confirm('Sei sicuro di voler eliminare {{ player.name }}?');">
+                <button type="submit" class="btn-delete" title="Elimina">&times;</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="empty-list">
+            Nessun giocatore presente. Aggiungine uno sopra! ☝️
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="footer-nav">
+        <a href="{{ url_for('select_player') }}" class="btn-back">⬅ Torna al Menu Principale</a>
+    </div>
+</div>
+
+</body>
+</html>
