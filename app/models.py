@@ -149,7 +149,7 @@ class PlayerRecord(db.Model):
 def init_db(app):
     BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     # Using a single main DB file now
-    db_path = os.path.join(BASE_DIR, 'instance', 'beerpong.db')
+    db_path = os.path.join(BASE_DIR, 'beerpong.db')
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
