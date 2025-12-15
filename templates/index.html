@@ -80,6 +80,57 @@
     box-shadow: 0 6px 14px rgba(0,0,0,0.12);
 }
 
+/* --- STILE BICCHIERE PENDENTE (AZZURRO) --- */
+.their-side .cup-circle.pending-hit {
+    background-color: #03a9f4 !important; /* Azzurro acceso */
+    border-color: #0288d1 !important;
+    opacity: 1;
+    cursor: help; /* Cursore interrogativo */
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 5px,
+        rgba(255,255,255,0.3) 5px,
+        rgba(255,255,255,0.3) 10px
+    );
+}
+.their-side .cup-circle.pending-hit::after {
+    content: '⏳'; /* Icona clessidra o simile */
+    color: white;
+    font-size: 1.4em;
+    pointer-events: none;
+}
+
+/* --- STILE DIFESA: BICCHIERE CHE STIAMO PER PERDERE (GRIGIO/ROSSO) --- */
+.my-side .cup-circle.pending-loss {
+    background-color: #546e7a !important; /* Grigio scuro */
+    border: 3px solid #c0392b !important; /* Bordo rosso scuro */
+    opacity: 0.8;
+    transform: scale(0.95); 
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+.my-side .cup-circle.pending-loss::after {
+    content: '⚠️'; /* Simbolo di pericolo */
+    color: white;
+    font-size: 1.4em;
+    font-weight: bold;
+    pointer-events: none;
+}
+
+/* --- STILE BICCHIERE NOSTRO CHE STA PER ESSERE RIMOSSO --- */
+.my-side .cup-circle.pending-loss {
+    background-color: #546e7a !important; /* Grigio bluastro scuro */
+    border-color: #37474f !important;
+    opacity: 0.7;
+    transform: scale(0.95); /* Leggermente più piccolo */
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+.my-side .cup-circle.pending-loss::after {
+    content: '✖'; /* Simbolo X */
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.5em;
+    font-weight: bold;
+}
 
         /* --- STATI SELEZIONATI (Stessa struttura, colori diversi) --- */
 
@@ -108,6 +159,49 @@
     color: #1b5e20;
     box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
 }
+
+/* --- SCHERMATE FINALI (OVERLAY) --- */
+.game-over-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 9999;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center;
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.overlay-win {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.95), rgba(39, 174, 96, 0.98));
+    color: white;
+}
+
+.overlay-loss {
+    background: linear-gradient(135deg, rgba(192, 57, 43, 0.95), rgba(150, 40, 27, 0.98));
+    color: white;
+}
+
+.result-emoji { font-size: 5em; margin-bottom: 10px; display: block; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2)); }
+.result-title { font-size: 3em; font-weight: 900; text-transform: uppercase; margin: 0; letter-spacing: 2px; text-shadow: 2px 2px 0 rgba(0,0,0,0.1); }
+.result-subtitle { font-size: 1.2em; opacity: 0.9; margin-bottom: 40px; font-weight: 300; }
+
+.btn-result {
+    padding: 15px 30px;
+    border-radius: 50px;
+    font-size: 1.2em;
+    font-weight: bold;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+    margin: 10px;
+    display: inline-block;
+}
+.btn-result:hover { transform: scale(1.05); }
+
+.btn-rematch { background: white; color: #333; }
+.btn-exit { background: rgba(0,0,0,0.2); color: white; border: 2px solid rgba(255,255,255,0.4); }
+
+@keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
 
         
         #opt_centro:checked + label .result-icon { opacity: 1; transform: scale(1.15); }
@@ -265,6 +359,38 @@
 
 <body class="{% if redemption_info and redemption_info.active and redemption_info.is_me %}redemption-active-me{% endif %}">
 
+    {% if game_result %}
+<div class="game-over-overlay {% if game_result == 'win' %}overlay-win{% else %}overlay-loss{% endif %}">
+    
+    {% if game_result == 'win' %}
+        <div class="result-emoji">🏆</div>
+        
+        {% if match_score_diff and match_score_diff < -1 %}
+            <div class="result-title" style="color:#ffeb3b; text-shadow:0 0 20px orange;">DISTRUZIONE TOTALE!</div>
+            <div class="result-subtitle">Vittoria immediata (Overkill {{ match_score_diff }}). Niente salvezza per loro.</div>
+        {% else %}
+            <div class="result-title">VITTORIA!</div>
+            <div class="result-subtitle">Grandi! Avete distrutto gli avversari.</div>
+        {% endif %}
+        
+    {% else %}
+        <div class="result-emoji">💀</div>
+        <div class="result-title">SCONFITTA</div>
+        <div class="result-subtitle">Non è andata bene... Bevete e riprovate.</div>
+    {% endif %}
+
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('rematch', match_id=defaults.match_id if defaults.match_id else 0) }}" class="btn-result btn-rematch">
+            🔄 RIVINCITA
+        </a>
+        <br>
+        <a href="{{ url_for('select_player') }}" class="btn-result btn-exit">
+            Esci al Menu
+        </a>
+    </div>
+</div>
+{% endif %}
+
 <div class="container fade-in">
     <div class="nav-header">
         <a href="{{ url_for('select_player') }}" class="btn-back">⬅ Esci</a>
@@ -414,6 +540,8 @@
 
         <input type="hidden" id="numero_bicchieri" name="numero_bicchieri" value="{{ defaults.numero_bicchieri }}">
 
+        <input type="hidden" id="rehit_list" name="rehit_list" value="">
+
         <div class="form-group">
             <div class="section-title">Bevanda</div>
             <input type="text" id="bevanda" name="bevanda" value="{{ defaults.bevanda }}" placeholder="Es. Birra">
@@ -499,30 +627,33 @@
 </div>
 
 <script>
-    // Recupera liste attive dal server
+    // ==========================================
+    // 1. VARIABILI GLOBALI E CONFIGURAZIONE
+    // ==========================================
+
     const activeCupsOpponent = {{ defaults.opp_active_cups | tojson | default('[]') }};
     const activeCupsMe = {{ defaults.my_active_cups | tojson | default('[]') }};
+    const pendingCups = {{ defaults.opp_pending_cups | tojson | default('[]') }};
+    const myPendingCups = {{ defaults.my_pending_cups | tojson | default('[]') }};
     
-    // Configurazione server (Stato salvato nel DB)
+    // Variabile per tracciare i Re-Hits (Bicchieri Azzurri cliccati)
+    let rehits = [];
+
     const serverCupsTarget = "{{ defaults.numero_bicchieri }}"; 
-    const serverOppFormat = "{{ defaults.formato }}"; // Il formato che il DB conosce
+    const serverOppFormat = "{{ defaults.formato }}"; 
     const serverMyFormat = "{{ defaults.my_formato }}";
 
-    // Configurazione Formati RIGOROSA per il MENU A TENDINA
-    // Formato: [Numero ESATTO di bicchieri per cui è ottimizzato]
     const FORMAT_LIMITS = {
-        "Piramide":          { min_cups: 1, max_cups: 6 }, // Piramide è sempre disponibile
-        "Rombo":             { min_cups: 4, max_cups: 4 },
-        "Triangolo":         { min_cups: 3, max_cups: 3 },
-        "Linea Verticale":   { min_cups: 2, max_cups: 2 },
+        "Piramide": { min_cups: 1, max_cups: 6 },
+        "Rombo": { min_cups: 4, max_cups: 4 },
+        "Triangolo": { min_cups: 3, max_cups: 3 },
+        "Linea Verticale": { min_cups: 2, max_cups: 2 },
         "Linea Orizzontale": { min_cups: 2, max_cups: 2 },
-        "Singolo Centrale":  { min_cups: 1, max_cups: 1 }
+        "Singolo Centrale": { min_cups: 1, max_cups: 1 }
     };
     
-    // Mappa per i nomi visualizzati (non cambia)
     const formatDisplayNames = { "Piramide": "Piramide 🔺", "Rombo": "Rombo 💠", "Triangolo": "Triangolo 📐", "Linea Verticale": "Linea Vert. ❙", "Linea Orizzontale": "Linea Oriz. ━", "Singolo Centrale": "Singolo ⏺" };
     
-    // Mappa per i nomi usati nel codice (non cambia)
     const visualLayouts = {
         "Piramide": [ ["3 Sx", "3 Cen", "3 Dx"], ["2 Sx", "2 Dx"], ["1 Cen"] ],
         "Rombo": [ ["R3 Cen"], ["R2 Sx", "R2 Dx"], ["R1 Cen"] ],
@@ -531,136 +662,65 @@
         "Linea Orizzontale": [ ["LO Sx", "LO Dx"] ],
         "Singolo Centrale": [ ["Singolo"] ]
     };
-    
 
-    function getLayoutByFormat(fmt) {
-        return visualLayouts[fmt] || visualLayouts["Piramide"];
-    }
+    // ==========================================
+    // 2. FUNZIONI LOGICHE
+    // ==========================================
+
+    function getLayoutByFormat(fmt) { return visualLayouts[fmt] || visualLayouts["Piramide"]; }
 
     function updateAvailableFormats() {
-    // 1. Determina il numero di bicchieri REALI
-    let cupsVal = 1;
-    const isMatchActive = {{ is_match | tojson }};
-    const manualSelect = document.getElementById('manual_cup_select');
-
-    if (isMatchActive) {
-        if (activeCupsOpponent && Array.isArray(activeCupsOpponent)) {
-            cupsVal = activeCupsOpponent.length;
-        } else {
-            cupsVal = parseInt(serverCupsTarget) || 6;
-        }
-        const manualCountDiv = document.getElementById('manual-cup-count');
-        if (manualCountDiv) manualCountDiv.style.display = 'none';
-
-    } else {
-        if (manualSelect) {
-            cupsVal = parseInt(manualSelect.value) || 6;
-            document.getElementById('numero_bicchieri').value = cupsVal;
+        let cupsVal = 1;
+        const isMatchActive = {{ is_match | tojson }};
+        if (isMatchActive) {
+            if (activeCupsOpponent && Array.isArray(activeCupsOpponent)) cupsVal = activeCupsOpponent.length;
+            else cupsVal = parseInt(serverCupsTarget) || 6;
         } else {
              cupsVal = parseInt(document.getElementById('numero_bicchieri').value) || 6;
         }
-    }
-    
-    const formatSelect = document.getElementById('formato');
-    const currentValue = formatSelect.value;
-    const isLocked = formatSelect.disabled;
-    
-    formatSelect.innerHTML = '';
-    
-    // --- PUNTO CHIAVE: FILTRAGGIO STRETTO ---
-    let availableFormats = [];
-    
-    for (const [formatName, limits] of Object.entries(FORMAT_LIMITS)) {
-        if (formatName === "Piramide") {
-            // La Piramide è SEMPRE disponibile se ci sono bicchieri
-            if (cupsVal >= 1) availableFormats.push(formatName);
-        } else {
-            // I formati speciali (Rombo, Triangolo, Singolo) sono disponibili
-            // SOLO se il conteggio è ESATTAMENTE quello richiesto (o Piramide è già stata scelta)
-            if (cupsVal >= limits.min_cups && cupsVal <= limits.max_cups) {
-                 availableFormats.push(formatName);
-            }
-        }
-    }
-    
-    // Riordina (Piramide, poi il resto in ordine alfabetico/logico)
-    availableFormats.sort((a, b) => {
-        if (a === "Piramide") return -1;
-        if (b === "Piramide") return 1;
-        return a.localeCompare(b); // Ordina il resto alfabeticamente
-    });
-
-    if (cupsVal === 0 && !availableFormats.includes("Piramide")) {
-        availableFormats = ["Piramide"];
-    }
-    
-    // 3. Popola il menu con la lista filtrata
-    availableFormats.forEach(fmt => {
-        const opt = document.createElement('option');
-        opt.value = fmt; 
-        opt.text = formatDisplayNames[fmt] || fmt;
-        formatSelect.appendChild(opt);
-    });
-
-    // 4. Gestione selezione (Logica ANTI-SALTO AUTOMATICO)
-    if (isLocked) {
-        // Logica bloccata (corretta)
-        let found = false;
-        for(let i=0; i<formatSelect.options.length; i++){
-            if(formatSelect.options[i].value === serverOppFormat) {
-                formatSelect.value = serverOppFormat;
-                found = true;
-            }
-        }
-        if (!found) {
-            const opt = document.createElement('option');
-            opt.value = serverOppFormat; opt.text = serverOppFormat;
-            formatSelect.appendChild(opt);
-            formatSelect.value = serverOppFormat;
-        }
-    } else {
-        // Se libero: impedisce il cambio automatico finché l'utente non interagisce.
         
-        // Priorità 1: Mantenere il formato salvato (serverOppFormat) se è ancora nella lista valida.
-        if (availableFormats.includes(serverOppFormat)) {
-             formatSelect.value = serverOppFormat;
-        } 
-        // Priorità 2: Mantenere il formato corrente (currentValue) se è valido
-        else if (availableFormats.includes(currentValue)) {
-            formatSelect.value = currentValue;
+        const formatSelect = document.getElementById('formato');
+        const currentValue = formatSelect.value;
+        const isLocked = formatSelect.disabled;
+        formatSelect.innerHTML = '';
+        
+        let availableFormats = [];
+        for (const [formatName, limits] of Object.entries(FORMAT_LIMITS)) {
+            if (formatName === "Piramide") { if (cupsVal >= 1) availableFormats.push(formatName); } 
+            else { if (cupsVal >= limits.min_cups && cupsVal <= limits.max_cups) availableFormats.push(formatName); }
         }
-        // Priorità 3 (Fallback obbligatorio): Se il formato è Rombo/Triangolo ed è sparito,
-        // o se siamo in una nuova situazione (es. 1 bicchiere), si seleziona il primo valido (Piramide).
-        else {
-             formatSelect.value = availableFormats[0];
-        }
-    }
+        availableFormats.sort((a, b) => (a === "Piramide") ? -1 : (b === "Piramide") ? 1 : a.localeCompare(b));
+        if (cupsVal === 0 && !availableFormats.includes("Piramide")) availableFormats = ["Piramide"];
+        
+        availableFormats.forEach(fmt => {
+            const opt = document.createElement('option');
+            opt.value = fmt; opt.text = formatDisplayNames[fmt] || fmt;
+            formatSelect.appendChild(opt);
+        });
 
-    // 5. Aggiorna la grafica (Disegna i bicchieri)
-    updateCupsVisuals();
-}
+        if (isLocked) {
+            let found = false;
+            for(let i=0; i<formatSelect.options.length; i++){ if(formatSelect.options[i].value === serverOppFormat) { formatSelect.value = serverOppFormat; found = true; } }
+            if (!found) { const opt = document.createElement('option'); opt.value = serverOppFormat; opt.text = serverOppFormat; formatSelect.appendChild(opt); formatSelect.value = serverOppFormat; }
+        } else {
+            if (availableFormats.includes(serverOppFormat)) formatSelect.value = serverOppFormat;
+            else if (availableFormats.includes(currentValue)) formatSelect.value = currentValue;
+            else formatSelect.value = availableFormats[0];
+        }
+        updateCupsVisuals();
+    }
 
     function updateCupsVisuals() {
         const selectedOppFormat = document.getElementById('formato').value;
-        
-        // --- MODIFICA CRUCIALE QUI ---
-        // Se il formato selezionato è UGUALE a quello nel DB, usa la lista dei bicchieri rimasti.
-        // Se è DIVERSO (l'hai appena cambiato), passa 'null' per dire "Mostrali tutti (reset visuale)".
         let listToUseOpponent = (selectedOppFormat === serverOppFormat) ? activeCupsOpponent : null;
-
         renderGrid(document.getElementById('their-cups-grid'), selectedOppFormat, listToUseOpponent, true);
-        
-        // Per noi, il formato non cambia dinamicamente dalla select, quindi usiamo sempre quello server
         renderGrid(document.getElementById('my-cups-grid'), serverMyFormat, activeCupsMe, false);
-        
         handleLogic();
     }
 
     function renderGrid(container, format, activeList, isOpponent) {
         container.innerHTML = '';
         let layoutRows = getLayoutByFormat(format);
-        
-        // Inverti per Noi (Base in basso)
         let rowsToRender = isOpponent ? layoutRows : [...layoutRows].reverse();
 
         rowsToRender.forEach(row => {
@@ -669,19 +729,21 @@
             row.forEach(cupName => {
                 const circle = document.createElement('div');
                 circle.className = 'cup-circle';
-                
-                // --- LOGICA MODIFICATA ---
-                // Se activeList è null, significa "Mostra tutto" (nuovo formato).
-                // Se activeList esiste, controlliamo se il bicchiere è presente.
-                if (activeList !== null && Array.isArray(activeList) && !activeList.includes(cupName)) {
-                    circle.classList.add('eliminated');
-                }
-                
+                if (activeList !== null && Array.isArray(activeList) && !activeList.includes(cupName)) circle.classList.add('eliminated');
+
                 if (isOpponent) {
+                    if (pendingCups.includes(cupName)) {
+                        circle.classList.add('pending-hit');
+                        circle.setAttribute('data-pending', 'true');
+                    }
                     circle.setAttribute('onclick', 'toggleCupSelection(this)');
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox'; checkbox.name = 'bicchiere_colpito'; checkbox.value = cupName;
+                    // I bicchieri pendenti non si selezionano come checkbox standard (vengono gestiti da rehits)
+                    if (pendingCups.includes(cupName)) checkbox.disabled = true; 
                     circle.appendChild(checkbox);
+                } else {
+                    if (myPendingCups.includes(cupName)) circle.classList.add('pending-loss');
                 }
                 rowDiv.appendChild(circle);
             });
@@ -689,40 +751,83 @@
         });
     }
 
-    // ... (Le altre funzioni toggleCupSelection, getCurrentLimit, handleResultClick, handleLogic rimangono identiche) ...
-    
     window.toggleCupSelection = function(circleElement) {
         const isHit = document.getElementById('opt_centro').checked;
         if (!isHit) {
-            const instr = document.getElementById('instruction-text');
-            instr.innerText = "⚠️ SELEZIONA PRIMA 'CENTRO'!"; instr.style.color = '#e74c3c';
-            setTimeout(() => { instr.innerText = "Seleziona 'Centro' per interagire"; instr.style.color = '#999'; }, 1000);
+            alert("⚠️ SELEZIONA PRIMA 'CENTRO'!");
             return; 
         }
-        const checkbox = circleElement.querySelector('input');
-        if (!checkbox) return; 
-        const limit = getCurrentLimit();
 
-        if (limit === 1) {
-            document.querySelectorAll('input[name="bicchiere_colpito"]').forEach(el => { el.checked = false; });
-            document.querySelectorAll('.their-side .cup-circle').forEach(c => c.classList.remove('selected'));
-            checkbox.checked = true;
-            circleElement.classList.add('selected');
-            setTimeout(() => { document.getElementById('gameForm').submit(); }, 50); 
+        const checkbox = circleElement.querySelector('input');
+        if (!checkbox) return;
+        
+        const isPending = circleElement.classList.contains('pending-hit');
+        
+        // --- CONTROLLO SPECIALE: TUTTI I BICCHIERI SONO PENDENTI? ---
+        // Contiamo quanti bicchieri NON eliminati ci sono in totale
+        const totalAlive = document.querySelectorAll('.their-side .cup-circle:not(.eliminated)').length;
+        // Contiamo quanti di questi sono già pendenti (Azzurri)
+        const totalPending = document.querySelectorAll('.their-side .cup-circle:not(.eliminated).pending-hit').length;
+        
+        const allCupsArePending = (totalAlive > 0 && totalAlive === totalPending);
+        // -------------------------------------------------------------
+
+        // --- CASO 1: RE-HIT (Clicco su bicchiere Azzurro) ---
+        if (isPending) {
+            const cupName = checkbox.value;
+            
+            if (rehits.includes(cupName)) {
+                rehits = rehits.filter(item => item !== cupName);
+                circleElement.classList.remove('selected');
+            } else {
+                rehits.push(cupName);
+                circleElement.classList.add('selected');
+                
+                // SE NON SONO TUTTI PENDENTI -> Chiedi sacrificio
+                if (!allCupsArePending) {
+                    alert("🔁 RE-HIT REGISTRATO: " + cupName + "\n\nOra seleziona un bicchiere ROSSO libero da eliminare al suo posto.");
+                } else {
+                    // SE SONO TUTTI PENDENTI -> Nessun messaggio, comportamento normale
+                    // (Perché non ci sono bicchieri rossi da sacrificare)
+                }
+            }
+            
+            checkbox.checked = false; 
+            document.getElementById('rehit_list').value = rehits.join(",");
+        } 
+        
+        // --- CASO 2: COLPO NORMALE O SACRIFICIO (Clicco su bicchiere Rosso) ---
+        else {
+            const willBeSelected = !checkbox.checked;
+            checkbox.checked = willBeSelected;
+            if (willBeSelected) circleElement.classList.add('selected'); 
+            else circleElement.classList.remove('selected');
+        }
+
+        checkAndSubmit(allCupsArePending);
+    };
+
+    // Aggiorniamo checkAndSubmit per accettare il flag speciale
+    function checkAndSubmit(isSpecialMode = false) {
+        const baseLimit = getCurrentLimit();
+        const activeCheckboxes = document.querySelectorAll('input[name="bicchiere_colpito"]:checked').length;
+        const rehitCount = rehits.length;
+        const totalActions = activeCheckboxes + rehitCount;
+        
+        // Se siamo in "Special Mode" (Tutti pendenti), non servono sacrifici.
+        // Il target è semplicemente il numero di tiri (baseLimit).
+        // Altrimenti, serve baseLimit + rehitCount (sacrifici).
+        const targetTotal = isSpecialMode ? baseLimit : (baseLimit + rehitCount);
+
+        if (totalActions > targetTotal) {
+            alert("Troppe selezioni! Hai selezionato " + totalActions + ".");
             return;
         }
-        const willBeSelected = !checkbox.checked;
-        let currentlyChecked = document.querySelectorAll('input[name="bicchiere_colpito"]:checked').length;
-        if (willBeSelected && currentlyChecked >= limit) {
-            alert("Hai selezionato 'Multiplo: " + limit + "'. Non puoi selezionarne di più."); return;
+
+        if (totalActions === targetTotal && totalActions > 0) {
+            setTimeout(() => { document.getElementById('gameForm').submit(); }, 300);
         }
-        checkbox.checked = willBeSelected;
-        if (willBeSelected) circleElement.classList.add('selected'); 
-        else circleElement.classList.remove('selected');
-        
-        const newCount = document.querySelectorAll('input[name="bicchiere_colpito"]:checked').length;
-        if (newCount === limit) { setTimeout(() => { document.getElementById('gameForm').submit(); }, 300); }
-    };
+    }
 
     function getCurrentLimit() {
         if (document.getElementById('multi_doppio').checked) return 2;
@@ -743,6 +848,7 @@
         const dynamicSection = document.getElementById('dynamic-hit-section');
         const theirContainerOuter = document.getElementById('their-cups-container');
         const instr = document.getElementById('instruction-text');
+        
         if (isHit) {
             dynamicSection.style.display = 'block';
             theirContainerOuter.classList.add('active-target');
@@ -757,13 +863,18 @@
 
     function resetMultipli() {
         document.getElementById('multi_none').checked = true;
+        rehits = []; 
+        document.getElementById('rehit_list').value = "";
         const circles = document.querySelectorAll('.their-side .cup-circle');
-        circles.forEach(c => { c.classList.remove('selected'); const cb = c.querySelector('input'); if(cb) cb.checked = false; });
+        circles.forEach(c => { 
+            c.classList.remove('selected'); 
+            const cb = c.querySelector('input'); 
+            if(cb) cb.checked = false; 
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
         updateAvailableFormats();
-        // Check iniziale se il formato salvato è valido per il numero di bicchieri
         const fmtSelect = document.getElementById('formato');
         if(fmtSelect.value !== serverOppFormat && !fmtSelect.disabled) {
              let isValidFmt = false; 

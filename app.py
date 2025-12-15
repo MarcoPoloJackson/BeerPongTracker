@@ -57,6 +57,8 @@ class ActiveMatch(db.Model):
     t1_pending_list = db.Column(db.Text, default='[]') 
     t2_pending_list = db.Column(db.Text, default='[]')
 
+    winning_team = db.Column(db.String(10), nullable=True)
+
     status = db.Column(db.String(20), default="running") 
     start_time = db.Column(db.DateTime, default=datetime.now)
     end_time = db.Column(db.DateTime, nullable=True)
@@ -159,30 +161,35 @@ def get_match_info(player_name):
 
 def apply_pending_damage(match, target_team):
     """
-    Applica i danni in sospeso per la squadra target (rimuove fisicamente i bicchieri).
-    target_team: 't1' o 't2' (la squadra che SUBISCE il danno e perde i bicchieri)
+    Applica i danni pendenti.
+    IMPORTANTE: Se il danno porterebbe i bicchieri a <= 0 (Redenzione o Overkill),
+    NON rimuove fisicamente i bicchieri per lasciarli visibili fino alla fine del turno/partita.
     """
-    # Determina le colonne
     state_col = 't1_cup_state' if target_team == 't1' else 't2_cup_state'
     pending_list_col = 't1_pending_list' if target_team == 't1' else 't2_pending_list'
     pending_int_col = 'pending_damage_for_t1' if target_team == 't1' else 'pending_damage_for_t2'
 
     try:
-        # 1. Carica liste attuali
         current_cups = json.loads(getattr(match, state_col))
         pending_cups = json.loads(getattr(match, pending_list_col))
 
         if not pending_cups:
-            return # Nessun danno da applicare
+            return
 
-        # 2. Rimuove i bicchieri pendenti dalla lista attiva
-        # (Filtriamo: teniamo solo quelli che NON sono nella lista pending)
+        # Calcolo quanti ne rimarrebbero (Active - Pending)
+        # Nota: usiamo i set per evitare duplicati nel calcolo
+        remaining_count = len(set(current_cups)) - len(set(pending_cups))
+
+        # SE LA PARTITA FINISCE O VA IN SALVEZZA (<= 0), NON RIMUOVERE I BICCHIERI
+        if remaining_count <= 0:
+            # Resettiamo solo il contatore numerico per pulizia, ma lasciamo le liste intatte
+            setattr(match, pending_int_col, 0)
+            return 
+
+        # SE IL GIOCO CONTINUA (> 0), RIMUOVIAMO FISICAMENTE
         new_cup_state = [cup for cup in current_cups if cup not in pending_cups]
 
-        # 3. Salva la nuova lista pulita
         setattr(match, state_col, json.dumps(new_cup_state))
-
-        # 4. Resetta i contatori di danno pendente
         setattr(match, pending_list_col, '[]')
         setattr(match, pending_int_col, 0)
         
@@ -203,22 +210,35 @@ def count_shots_in_match(player_name, match_id):
 
 def start_overtime(match):
     match.status = 'running'
-    # Reset formato visuale a Singolo
+    
+    # 1. Reset Formato a Singolo Centrale (1 vs 1)
     match.format_target_for_t1 = "Singolo Centrale"
     match.format_target_for_t2 = "Singolo Centrale"
     
-    # Reimposta i bicchieri reali nel DB (Lista JSON con 1 bicchiere)
-    init_cup_state(match, 't1', 'Singolo Centrale')
-    init_cup_state(match, 't2', 'Singolo Centrale')
+    # 2. Reset Bicchieri Reali (Lista JSON con 1 bicchiere ["Singolo"])
+    match.t1_cup_state = json.dumps(["Singolo"])
+    match.t2_cup_state = json.dumps(["Singolo"])
     
-    # Reset contatori redenzione
+    # 3. Pulisci eventuali danni pendenti vecchi
+    match.t1_pending_list = '[]'
+    match.t2_pending_list = '[]'
+    match.pending_damage_for_t1 = 0
+    match.pending_damage_for_t2 = 0
+    
+    # 4. Reset contatori partita
     match.redemption_hits = 0 
     match.redemption_shots_left = 0
+    match.t1_format_changed = True # Blocchiamo il formato
+    match.t2_format_changed = True
+    
     db.session.commit()
 
 def finish_match(match, winner):
     match.status = 'finished'
     match.end_time = datetime.now()
+    match.winning_team = winner  # 't1' o 't2'
+    # NON resettiamo più qui i bicchieri, lo faremo nel tasto Rematch
+    db.session.commit()
     
     # Reset per la prossima partita (Piramide completa)
     match.format_target_for_t1 = "Piramide"
@@ -233,79 +253,87 @@ def finish_match(match, winner):
 
 def update_game_state(match):
     """
-    Questa funzione sincronizza i contatori numerici con le liste JSON
-    e gestisce le regole di vittoria/redenzione specifiche.
+    Gestisce le regole di vittoria, sconfitta, overtime e ribaltone.
+    Centralizza i controlli per evitare discrepanze.
     """
     if match.status == 'finished': return
 
-    # 1. SINCRONIZZA NUMERI E LISTE (FONDAMENTALE)
-    # Calcola quanti bicchieri sono rimasti contando gli elementi nelle liste JSON
+    # 1. CALCOLO BILANCIO REALE (Fisici - Pendenti)
+    t1_active_count = 0; t2_active_count = 0
     try:
-        t1_list = json.loads(match.t1_cup_state)
-        t2_list = json.loads(match.t2_cup_state)
-        match.cups_target_for_t1 = len(t1_list)
-        match.cups_target_for_t2 = len(t2_list)
-    except:
-        pass # Se c'è errore nei dati (es. DB vecchio), ignora
+        t1_list = json.loads(match.t1_cup_state); t2_list = json.loads(match.t2_cup_state)
+        t1_pending = json.loads(match.t1_pending_list); t2_pending = json.loads(match.t2_pending_list)
+        
+        # Usiamo i set per contare correttamente
+        t1_active_count = len(t1_list) - len(set(t1_pending))
+        t2_active_count = len(t2_list) - len(set(t2_pending))
 
-    # 2. LOGICA FASE NORMALE
+        match.cups_target_for_t1 = t1_active_count
+        match.cups_target_for_t2 = t2_active_count
+    except: return
+
+    # 2. LOGICA FASE NORMALE (Running)
     if match.status == 'running':
-        # --- SQUADRA 1 ---
-        if match.cups_target_for_t1 <= 0:
-            # Se < 0: Vittoria Immediata T2 (Overkill)
-            if match.cups_target_for_t1 < 0:
+        # --- CASO T1 SCENDE A ZERO O MENO ---
+        if t1_active_count <= 0:
+            # MODIFICA QUI: < -1 (Vinco subito solo se Overkill pesante, es -2)
+            if t1_active_count < -1: 
                 finish_match(match, winner='t2')
-            # Se == 0: Tiri Salvezza per T1
-            else:
+            else: 
+                # REDENZIONE T1 (Copre 0 e -1)
                 match.status = 'redemption_t1'
-                rimasti_avversari = match.cups_target_for_t2
-                # Se manca 1 bicchiere -> 2 tiri, altrimenti pari ai bicchieri
-                match.redemption_shots_left = 2 if rimasti_avversari == 1 else rimasti_avversari
+                rimasti_avv = t2_active_count
+                match.redemption_shots_left = 2 if rimasti_avv == 1 else rimasti_avv
                 match.redemption_hits = 0
 
-        # --- SQUADRA 2 ---
-        elif match.cups_target_for_t2 <= 0:
-            if match.cups_target_for_t2 < 0:
+        # --- CASO T2 SCENDE A ZERO O MENO ---
+        elif t2_active_count <= 0:
+            # MODIFICA QUI: < -1
+            if t2_active_count < -1: 
                 finish_match(match, winner='t1')
-            else:
+            else: 
+                # REDENZIONE T2
                 match.status = 'redemption_t2'
-                rimasti_avversari = match.cups_target_for_t1
-                match.redemption_shots_left = 2 if rimasti_avversari == 1 else rimasti_avversari
+                rimasti_avv = t1_active_count
+                match.redemption_shots_left = 2 if rimasti_avv == 1 else rimasti_avv
                 match.redemption_hits = 0
 
-    # 3. LOGICA TIRI SALVEZZA (REDENZIONE)
+    # 3. LOGICA FASE REDENZIONE
     elif match.status.startswith('redemption'):
         redeeming_team = 't1' if match.status == 'redemption_t1' else 't2'
         opponent_team = 't2' if redeeming_team == 't1' else 't1'
         
-        # Bicchieri dell'avversario (quelli che chi recupera deve "colpire" virtualmente)
-        opponent_cups_count = match.cups_target_for_t2 if redeeming_team == 't1' else match.cups_target_for_t1
+        # Bilancio dell'avversario (quello che stiamo bersagliando)
+        target_balance = t2_active_count if redeeming_team == 't1' else t1_active_count
         
-        # Calcolo situazione: Bicchieri Avversari - Colpi Messi a Segno in redenzione
-        virtual_remaining = opponent_cups_count - match.redemption_hits
-        
-        # CONTROLLO FINE TIRI
+        # --- CONTROLLO VITTORIA IMMEDIATA DURANTE REDENZIONE ---
+        # Se porto l'avversario a -2 o peggio, vinco SUBITO, senza aspettare la fine dei tiri.
+        if target_balance < -1:
+            finish_match(match, winner=redeeming_team)
+            return # Stop
+
+        # --- CONTROLLO FINE TIRI ---
         if match.redemption_shots_left <= 0:
             
-            # Caso A: Pareggio (0) -> Overtime 1vs1
-            if virtual_remaining == 0:
+            # CASO A: Pareggio Perfetto (0) -> OVERTIME
+            if target_balance == 0:
                 start_overtime(match)
             
-            # Caso B: Sorpasso di 1 (-1) -> Inversione ruoli (2 tiri)
-            elif virtual_remaining == -1:
-                # Inverti chi deve salvarsi
+            # CASO B: Ribaltone (-1) -> L'avversario va in salvezza
+            elif target_balance == -1:
+                # Inversione ruoli
                 match.status = f'redemption_{opponent_team}'
-                
-                # Resettiamo i tiri a 2 per la nuova squadra in pericolo
-                match.redemption_shots_left = 2
+                match.redemption_shots_left = 2 # 2 Tiri standard per chi subisce il ribaltone
                 match.redemption_hits = 0
                 
-            # Caso C: Sorpasso di 2 o più (<= -2) -> Vittoria Immediata chi recuperava
-            elif virtual_remaining <= -2:
-                finish_match(match, winner=redeeming_team)
-            
-            # Caso D: Non sufficiente (> 0) -> Vince l'avversario (chi aveva chiuso per primo)
-            else:
+                # Pulizia immediata del tavolo per chi ha appena recuperato
+                if redeeming_team == 't1': 
+                    match.t2_cup_state = '[]'; match.t2_pending_list = '[]'
+                else: 
+                    match.t1_cup_state = '[]'; match.t1_pending_list = '[]'
+                
+            # CASO C: Fallimento (>0) -> Vince l'avversario
+            elif target_balance > 0:
                 finish_match(match, winner=opponent_team)
 
     db.session.commit()
@@ -318,24 +346,31 @@ def update_game_state(match):
 @app.route('/')
 def select_player():
     with app.app_context():
-        # Migrazioni esistenti
+        # --- MIGRAZIONI ESISTENTI ---
         try: 
             with db.engine.connect() as conn:
                 conn.execute(text("ALTER TABLE active_match ADD COLUMN redemption_hits INTEGER DEFAULT 0"))
         except: pass
+        
         try: 
             with db.engine.connect() as conn:
                 conn.execute(text("ALTER TABLE active_match ADD COLUMN t1_format_changed BOOLEAN DEFAULT 0"))
                 conn.execute(text("ALTER TABLE active_match ADD COLUMN t2_format_changed BOOLEAN DEFAULT 0"))
         except: pass
 
-        # --- NUOVE MIGRAZIONI PER LA GESTIONE DEI BICCHIERI PENDENTI ---
+        # --- MIGRAZIONI PER LA GESTIONE DEI BICCHIERI PENDENTI ---
         try: 
             with db.engine.connect() as conn:
                 conn.execute(text("ALTER TABLE active_match ADD COLUMN t1_pending_list TEXT DEFAULT '[]'"))
                 conn.execute(text("ALTER TABLE active_match ADD COLUMN t2_pending_list TEXT DEFAULT '[]'"))
         except: pass
-        # -----------------------------------------------------------------
+
+        # --- NUOVA MIGRAZIONE PER SCHERMATA VITTORIA/SCONFITTA ---
+        try: 
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE active_match ADD COLUMN winning_team VARCHAR(10)"))
+        except: pass
+        # ----------------------------------------------------------
 
     players = Player.query.order_by(Player.name).all()
     active_matches = ActiveMatch.query.all()
@@ -399,12 +434,25 @@ def setup_match(match_id):
 @app.route('/rematch/<int:match_id>')
 def rematch(match_id):
     match = ActiveMatch.query.get_or_404(match_id)
-    match.status = 'running'; match.start_time = datetime.now(); match.end_time = None
+    match.status = 'running'
+    match.start_time = datetime.now()
+    match.end_time = None
+    match.winning_team = None # Reset vincitore
+    
+    # Reset Contatori
     match.cups_target_for_t1 = 6; match.cups_target_for_t2 = 6
     match.format_target_for_t1 = "Piramide"; match.format_target_for_t2 = "Piramide"
     match.pending_damage_for_t1 = 0; match.pending_damage_for_t2 = 0
     match.redemption_shots_left = 0; match.redemption_hits = 0
     match.t1_format_changed = False; match.t2_format_changed = False
+    
+    # Pulisci le liste pendenti
+    match.t1_pending_list = '[]'; match.t2_pending_list = '[]'
+    
+    # Ricrea i bicchieri
+    init_cup_state(match, 't1', 'Piramide')
+    init_cup_state(match, 't2', 'Piramide')
+    
     db.session.commit()
     return redirect(url_for('select_player'))
 
@@ -415,86 +463,97 @@ def end_match(match_id):
 
 @app.route('/tracker/<player_name>')
 def index(player_name):
+    # 1. Recupero Database Giocatore
     dbsession, PlayerRecord = get_player_db_session(player_name)
     records_obj = dbsession.query(PlayerRecord).order_by(PlayerRecord.id.desc()).all()
     clean_records = dati_tabella_from_records(records_obj)
     ultimo_record = dbsession.query(PlayerRecord).order_by(PlayerRecord.id.desc()).first()
 
-    # Inizializzazione predefinita per modalità Singola/Senza Match
-    defaults = {'numero_bicchieri': '6', 'formato': 'Piramide', 'postazione': '', 'bevanda': 'Birra', 'giocatore': player_name, 'my_formato': 'Piramide'}
+    # 2. Inizializzazione Defaults
+    defaults = {'numero_bicchieri': '6', 'formato': 'Piramide', 'postazione': '', 'bevanda': 'Birra', 'giocatore': player_name, 'my_formato': 'Piramide', 'match_id': 0}
     match, team = get_match_info(player_name)
     
     pending_damage_for_me = 0; pending_damage_for_them = 0
     match_status = None; redemption_info = None
     format_locked = False
+    game_result = None # Per schermata vittoria/sconfitta
     
-    # Inizializzazione delle liste di bicchieri per garantire che siano sempre definite
+    # Liste di base (Vuote o Piramide)
     my_active_cups = CUP_DEFINITIONS['Piramide']
     opp_active_cups = CUP_DEFINITIONS['Piramide']
+    opp_pending_cups = [] # Blu (Attacco)
+    my_pending_cups = []  # Grigi (Difesa)
+
     my_cups_count = 6; opp_cups_count = 6
 
     if match:
-        # ... (TUTTA LA TUA LOGICA ESISTENTE SOTTO match: )
+        defaults['match_id'] = match.id # Fondamentale per il link Rivincita
         update_game_state(match) 
-
         match_status = match.status
         
+        # --- Determina Vittoria/Sconfitta ---
+        if match.status == 'finished':
+            if match.winning_team == team:
+                game_result = 'win'
+            else:
+                game_result = 'loss'
         
-        # --- Caricamento Liste JSON dal DB ---
         try:
+            # --- Caricamento Liste JSON in base al Team ---
             if team == 't1': 
                 my_active_cups = json.loads(match.t1_cup_state) 
-                opp_active_cups = json.loads(match.t2_cup_state) 
+                opp_active_cups = json.loads(match.t2_cup_state)
+                
+                opp_pending_cups = json.loads(match.t2_pending_list)
+                my_pending_cups = json.loads(match.t1_pending_list)
                 
                 defaults['my_formato'] = match.format_target_for_t1
                 defaults['formato'] = match.format_target_for_t2
                 format_locked = match.t1_format_changed
                 
-                # ... (resto della logica match) ...
             else: 
                 my_active_cups = json.loads(match.t2_cup_state)
                 opp_active_cups = json.loads(match.t1_cup_state)
+                
+                opp_pending_cups = json.loads(match.t1_pending_list)
+                my_pending_cups = json.loads(match.t2_pending_list)
                 
                 defaults['my_formato'] = match.format_target_for_t2
                 defaults['formato'] = match.format_target_for_t1
                 format_locked = match.t2_format_changed
             
-            # Contiamo la lunghezza delle liste per i punteggi numerici
-            my_cups_count = len(my_active_cups)
+            # Calcolo conteggi visivi reali
+            # I miei bicchieri = Quelli attivi - Quelli che stanno per sparire (pendenti)
+            my_cups_count = len(my_active_cups) - len(my_pending_cups)
             opp_cups_count = len(opp_active_cups)
             
-            # ... (Tutta la logica di pending_damage, redemption, postazione) ...
+            # Caricamento danni numerici
             if team == 't1': pending_damage_for_me = match.pending_damage_for_t1; pending_damage_for_them = match.pending_damage_for_t2
             else: pending_damage_for_me = match.pending_damage_for_t2; pending_damage_for_them = match.pending_damage_for_t1
 
         except Exception as e:
-             # In caso di errore nel caricamento JSON, ricrea le liste
              print(f"Errore caricamento stato bicchieri: {e}")
-             my_active_cups = CUP_DEFINITIONS.get(defaults['my_formato'], CUP_DEFINITIONS['Piramide'])
-             opp_active_cups = CUP_DEFINITIONS.get(defaults['formato'], CUP_DEFINITIONS['Piramide'])
-             my_cups_count = len(my_active_cups)
-             opp_cups_count = len(opp_active_cups)
 
-
-    # --- Aggiornamento defaults per l'HTML (sia con match che senza) ---
+    # --- Logica Display Tiri Salvezza ---
     display_opp_cups = str(opp_cups_count)
     if match and match.status.startswith('redemption'):
         is_my_team_redeeming = (match.status == f'redemption_{team}')
         redemption_info = {'active': True, 'shots_left': match.redemption_shots_left, 'is_me': is_my_team_redeeming}
         if is_my_team_redeeming:
+            # Mostriamo i bicchieri effettivi rimasti all'avversario
             display_opp_cups = f"{opp_cups_count} - {match.redemption_hits}"
 
     defaults['numero_bicchieri'] = display_opp_cups
-    
-    # Inseriamo le liste nel dizionario defaults (QUESTO RISOLVE L'ERRORE JSON)
     defaults['opp_active_cups'] = opp_active_cups
     defaults['my_active_cups'] = my_active_cups
+    defaults['opp_pending_cups'] = opp_pending_cups
+    defaults['my_pending_cups'] = my_pending_cups
 
-    # Postazione e bevanda (logica fuori da match)
+    # --- Defaults Postazione/Bevanda (da ultimo record) ---
     if ultimo_record:
-        if not match: # Solo se non c'è match, altrimenti usa la logica del match
+        if not match: 
             defaults['postazione'] = ultimo_record.postazione; defaults['bevanda'] = ultimo_record.bevanda
-            defaults['numero_bicchieri'] = str(ultimo_record.numero_bicchieri) # Riporta il numero vecchio
+            defaults['numero_bicchieri'] = str(ultimo_record.numero_bicchieri)
         elif player_name == match.t1_p1 or player_name == match.t2_p1: defaults['postazione'] = 'Sinistra'
         elif player_name == match.t1_p2 or player_name == match.t2_p2: defaults['postazione'] = 'Destra'
         if ultimo_record.bevanda: defaults['bevanda'] = ultimo_record.bevanda
@@ -511,7 +570,8 @@ def index(player_name):
                            is_match=bool(match), teammate=teammate, 
                            pending_damage=pending_damage_for_me, waiting_for_opponent=pending_damage_for_them, 
                            match_status=match_status, redemption_info=redemption_info,
-                           my_cups=my_cups_count, opp_cups=opp_cups_count, format_locked=format_locked)
+                           my_cups=my_cups_count, opp_cups=opp_cups_count, format_locked=format_locked,
+                           game_result=game_result)
 
 @app.route('/force_update/<player_name>', methods=['POST'])
 def force_update(player_name):
@@ -527,16 +587,15 @@ def force_update(player_name):
         db.session.commit()
     return redirect(url_for('index', player_name=player_name))
 
+
 @app.route('/add/<player_name>', methods=['POST'])
 def add_record(player_name):
     dbsession, PlayerRecord = get_player_db_session(player_name)
     match, team = get_match_info(player_name)
-    MULTIPLIER_MAP = {'Doppio': 2, 'Triplo': 3, 'Quadruplo': 4, 'Quintuplo': 5, 'Sestuplo': 6}
-
+    
+    # --- GESTIONE CAMBIO FORMATO ---
     submitted_format = request.form.get('formato')
     final_format = submitted_format 
-
-    # --- GESTIONE CAMBIO FORMATO (Se necessario) ---
     if match:
         target_format_db = match.format_target_for_t2 if team == 't1' else match.format_target_for_t1
         if submitted_format and submitted_format != target_format_db:
@@ -544,72 +603,111 @@ def add_record(player_name):
             if not already_changed:
                 if team == 't1':
                     match.format_target_for_t2 = submitted_format; match.t1_format_changed = True
-                    # Re-inizializza i bicchieri per il nuovo formato!
                     init_cup_state(match, 't2', submitted_format) 
                 else:
                     match.format_target_for_t1 = submitted_format; match.t2_format_changed = True
                     init_cup_state(match, 't1', submitted_format)
                 db.session.commit()
             else:
-                # Se il formato è già stato cambiato (bloccato), usiamo quello del DB.
                 final_format = target_format_db
-    
-    # --- LOGICA APPLICAZIONE/ACCUMULO DANNI ---
-    res = request.form['risultato_tiro']
-    hit_list = [] # Lista bicchieri colpiti
 
+    res = request.form['risultato_tiro']
+    cups_for_stats = [] 
+    
     if match:
-        # 1. APPLICA I DANNI PENDENTI SU DI ME (È il mio turno, quindi il turno avversario precedente è finito)
-        # Questo fa sparire i bicchieri che l'avversario aveva segnato nel suo ultimo tiro.
         apply_pending_damage(match, team)
 
-        # 2. GESTIONE DEL MIO TIRO (Se ho fatto centro)
         if res == 'Centro':
-            hit_list = request.form.getlist('bicchiere_colpito')
+            damage_candidates = request.form.getlist('bicchiere_colpito') # Rossi
+            rehit_str = request.form.get('rehit_list', '')
+            rehits = [x for x in rehit_str.split(',') if x] # Azzurri
             
+            cups_for_stats = rehits + damage_candidates 
+
+            # =================================================================
+            #                     FASE 1: REDENZIONE (TIRI SALVEZZA)
+            # =================================================================
             if match.status.startswith('redemption'):
-                 # IN REDEMPTION: il danno viene gestito dai contatori numerici (hits)
                  redeeming_team = 't1' if match.status == 'redemption_t1' else 't2'
+                 
                  if team == redeeming_team:
-                     match.redemption_hits += len(hit_list)
-                     match.redemption_shots_left -= 1
+                     try:
+                         cups_start = match.cups_target_for_t2 if team == 't1' else match.cups_target_for_t1
+                         total_hits_this_turn = len(damage_candidates) + len(rehits)
+                         
+                         balance = cups_start - (match.redemption_hits + total_hits_this_turn)
+                         
+                         # --- MODIFICA RICHIESTA: QUI DEVE ESSERE < -1 ---
+                         if balance < -1:
+                             finish_match(match, winner=redeeming_team)
+                             
+                             new_rec = PlayerRecord(
+                                match_id=match.id, miss="No", bordo="No", centro="Sì",
+                                numero_bicchieri="WIN (Redemption)", bicchiere_colpito=", ".join(cups_for_stats),
+                                giocatore=player_name, data=datetime.now().strftime("%d/%m/%Y"), ora=datetime.now().strftime("%H:%M")
+                             )
+                             dbsession.add(new_rec); db.session.commit()
+                             return redirect(url_for('index', player_name=player_name))
+                         
+                         match.redemption_hits += total_hits_this_turn
+                         match.redemption_shots_left -= 1
+                             
+                     except Exception as e: print(f"Redemption calc error: {e}")
+
+            # =================================================================
+            #                     FASE 2: PARTITA NORMALE
+            # =================================================================
             else:
-                # FASE NORMALE: ACCUMULO DANNO PENDENTE AGLI AVVERSARI
                 opponent_team = 't2' if team == 't1' else 't1'
-                
-                # Colonne dell'avversario
                 opp_pending_list_col = f'{opponent_team}_pending_list'
                 opp_pending_int_col = f'pending_damage_for_{opponent_team}'
+                opp_active_col = f'{opponent_team}_cup_state'
 
-                # Carica lista pendente attuale, aggiungi i nuovi, salva
                 try:
                     current_pending = json.loads(getattr(match, opp_pending_list_col))
+                    current_active_cups = json.loads(getattr(match, opp_active_col))
                     
-                    for h in hit_list:
-                        # Controlliamo anche che il bicchiere non sia già stato rimosso
-                        if h not in current_pending:
-                            current_pending.append(h)
-                    
-                    setattr(match, opp_pending_list_col, json.dumps(current_pending))
-                    
-                    # Aggiorna anche l'intero (per il messaggio "Togli N bicchieri")
-                    # Qui non sommiamo i bicchieri della hit_list, ma calcoliamo la lunghezza della pending_list
-                    setattr(match, opp_pending_int_col, len(current_pending)) 
-                except:
-                    pass
+                    effective_new_hits = len(damage_candidates)
+                    if effective_new_hits == 0 and len(rehits) > 0:
+                        effective_new_hits = len(rehits)
 
-        # 3. GESTIONE TIRI SALVEZZA SU MISS/BORDO (Logica esistente per la redenzione)
+                    balance = len(current_active_cups) - len(current_pending) - effective_new_hits
+                    
+                    # --- MODIFICA RICHIESTA: QUI DEVE ESSERE < 0 ---
+                    # Se balance è -1 (o inferiore), vinci subito.
+                    if balance < 0:
+                        finish_match(match, winner=team)
+                        
+                        new_rec = PlayerRecord(
+                            match_id=match.id, miss="No", bordo="No", centro="Sì",
+                            numero_bicchieri="VITTORIA (Overkill)", bicchiere_colpito=", ".join(cups_for_stats),
+                            giocatore=player_name, data=datetime.now().strftime("%d/%m/%Y"), ora=datetime.now().strftime("%H:%M")
+                        )
+                        dbsession.add(new_rec); db.session.commit()
+                        return redirect(url_for('index', player_name=player_name))
+                    
+                    else:
+                        for c in damage_candidates:
+                            if c not in current_pending: current_pending.append(c)
+                        
+                        setattr(match, opp_pending_list_col, json.dumps(current_pending))
+                        setattr(match, opp_pending_int_col, len(current_pending)) 
+
+                except Exception as e:
+                    print(f"Errore logica normale: {e}")
+
+        # Decremento tiri in Redemption per Miss/Bordo
         if match.status.startswith('redemption'):
             redeeming_team = 't1' if match.status == 'redemption_t1' else 't2'
             if team == redeeming_team and res != 'Centro':
                 match.redemption_shots_left -= 1
         
-        # 4. Sincronizzazione finale
         update_game_state(match)
         db.session.commit()
 
-    # --- SALVATAGGIO STORICO (RECORD) ---
-    hit_str = ", ".join(hit_list) if res == "Centro" else "N/A"
+    # --- SALVATAGGIO STORICO ---
+    hit_str = ", ".join(cups_for_stats) if res == "Centro" else "N/A"
+    
     post = request.form.get('postazione')
     if not post and match: post = 'Sinistra' if player_name in [match.t1_p1, match.t2_p1] else 'Destra'
 
@@ -620,16 +718,13 @@ def add_record(player_name):
             if team == 't1': curr_my_cups = t1_c; curr_opp_cups = t2_c
             else: curr_my_cups = t2_c; curr_opp_cups = t1_c
         except: pass
-
     adesso = datetime.now()
-    # Utilizziamo il conteggio dei bicchieri avversari ATTIVI (quelli ancora sul tavolo)
     req_cups = str(curr_opp_cups)
     
     new_rec = PlayerRecord(
         match_id=match.id if match else None,
         miss=("Sì" if res=="Miss" else "No"), bordo=("Sì" if res=="Bordo" else "No"), centro=("Sì" if res=="Centro" else "No"),
         cups_own=curr_my_cups, cups_opp=curr_opp_cups,
-        # Nota: bicchiere_colpito e numero_bicchieri nello storico riflettono la situazione
         numero_bicchieri=req_cups, bicchiere_colpito=hit_str, formato=final_format,
         tiro_salvezza=('Sì' if 'tiro_salvezza' in request.form else 'No'), postazione=post, bevanda=request.form['bevanda'].strip().capitalize(), 
         giocatore=player_name, bicchieri_multipli=request.form.get('bicchieri_multipli'), 
