@@ -6,7 +6,7 @@ import sqlite3
 from datetime import datetime
 
 # Importiamo tutto il necessario dal modulo databases
-from databases import (
+from app.models import (
     db,
     init_db,
     Player,
@@ -59,7 +59,7 @@ def select_player():
         }
         matches_data.append({'match': m, 'stats': stats})
 
-    return render_template('select_player.html',
+    return render_template('home.html',
                            players=players,
                            matches_data=matches_data,
                            busy_players=busy_players)
@@ -77,7 +77,7 @@ def setup_match(match_id):
 
     if request.method == 'POST':
         mode = request.form.get('mode')
-        if mode == 'singolo': return redirect(url_for('select_player'))
+        if mode == 'singolo': return redirect(url_for('main.select_player'))
 
         t1_p1 = request.form.get('t1_p1');
         t1_p2 = request.form.get('t1_p2')
@@ -108,7 +108,7 @@ def setup_match(match_id):
         if not match.t2_cup_state or match.t2_cup_state == '[]':
             init_cup_state(match, 't2', 'Piramide')
 
-        return redirect(url_for('select_player'))
+        return redirect(url_for('main.select_player'))
 
     players = Player.query.order_by(Player.name).all()
     return render_template('setup_match.html', players=players, match=match, busy_players=busy_players)
@@ -139,14 +139,14 @@ def rematch(match_id):
     init_cup_state(match, 't2', 'Piramide')
 
     db.session.commit()
-    return redirect(url_for('select_player'))
+    return redirect(url_for('main.select_player'))
 
 
 @app.route('/end_match/<int:match_id>')
 def end_match(match_id):
     db.session.delete(ActiveMatch.query.get_or_404(match_id));
     db.session.commit()
-    return redirect(url_for('select_player'))
+    return redirect(url_for('main.select_player'))
 
 
 @app.route('/tracker/<player_name>')
@@ -242,7 +242,7 @@ def index(player_name):
         else:
             teammate = match.t2_p2 if match.t2_p1 == player_name else match.t2_p1
 
-    return render_template('index.html', intestazioni=INTESTAZIONI, dati=clean_records,
+    return render_template('player_record.html', intestazioni=INTESTAZIONI, dati=clean_records,
                            titolo=f"Tracker - {player_name}", defaults=defaults, player_name=player_name,
                            is_match=bool(match), teammate=teammate,
                            pending_damage=pending_damage_for_me, waiting_for_opponent=pending_damage_for_them,
@@ -259,7 +259,7 @@ def force_update(player_name):
         apply_pending_damage(match, opponent_team)
         update_game_state(match)
         db.session.commit()
-    return redirect(url_for('index', player_name=player_name))
+    return redirect(url_for('main.index', player_name=player_name))
 
 
 @app.route('/add/<player_name>', methods=['POST'])
@@ -322,7 +322,7 @@ def add_record(player_name):
                         match.redemption_hits += len(cups_for_stats)
                         match.redemption_shots_left -= 1
 
-                        # Nota: Il controllo vittoria ora lo farà update_game_state in databases.py
+                        # Nota: Il controllo vittoria ora lo farà update_game_state in models.py
                         # usando i bicchieri reali aggiornati qui sopra.
 
                     except Exception as e:
@@ -401,7 +401,7 @@ def add_record(player_name):
     dbsession.add(new_rec);
     dbsession.commit();
     dbsession.close()
-    return redirect(url_for('index', player_name=player_name))
+    return redirect(url_for('main.index', player_name=player_name))
 
 
 @app.route('/edit/<player_name>/<int:id>', methods=['GET', 'POST'])
@@ -459,7 +459,7 @@ def edit_record(player_name, id):
         if match: update_game_state(match)
         dbsession.commit();
         dbsession.close()
-        return redirect(url_for('index', player_name=player_name))
+        return redirect(url_for('main.index', player_name=player_name))
 
     return render_template('edit_record.html', record=record, player_name=player_name)
 
@@ -490,7 +490,7 @@ def delete_record(player_name, id):
         dbsession.delete(r);
         dbsession.commit()
     dbsession.close()
-    return redirect(url_for('index', player_name=player_name))
+    return redirect(url_for('main.index', player_name=player_name))
 
 
 @app.route('/players')
@@ -519,7 +519,7 @@ def delete_player(id):
 
 @app.route('/database-viewer')
 def database_viewer():
-    # Tutta la logica complessa è ora delegata a databases.py
+    # Tutta la logica complessa è ora delegata a models.py
     full_content = get_all_db_content()
     return render_template('admin_db.html', full_db=full_content)
 

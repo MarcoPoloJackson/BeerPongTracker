@@ -51,7 +51,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             font-size: 0.7em; font-weight: bold;
         }
-        /* Mostra il nome del bicchiere sotto o sopra? Facciamo tooltip semplice o testo bianco se preferisci */
+
         .cup-item label::after {
             content: attr(data-name);
             position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
@@ -59,9 +59,9 @@
         }
 
         /* Stile Selezionato */
-        .cup-item input:checked + label { 
+        .cup-item input:checked + label {
             background: #27ae60; border-color: #2ecc71; transform: scale(0.95); opacity: 1;
-            color: white; 
+            color: white;
         }
         .cup-item input:checked + label::before { content: '✕'; font-size: 1.5em; }
 
@@ -85,16 +85,16 @@
     <div class="subtitle">ID #{{ record.id }} - {{ player_name }}</div>
 
     <form method="POST">
-        
+
         <div class="form-group">
             <div class="section-title">Risultato</div>
             <div class="result-options">
                 <input type="radio" id="opt_miss" name="risultato_tiro" value="Miss" onclick="handleLogic()" {% if record.miss == 'Sì' %}checked{% endif %}>
                 <label for="opt_miss" class="result-label"><span class="result-icon">💨</span>MISS</label>
-                
+
                 <input type="radio" id="opt_bordo" name="risultato_tiro" value="Bordo" onclick="handleLogic()" {% if record.bordo == 'Sì' %}checked{% endif %}>
                 <label for="opt_bordo" class="result-label"><span class="result-icon">🧱</span>BORDO</label>
-                
+
                 <input type="radio" id="opt_centro" name="risultato_tiro" value="Centro" onclick="handleLogic()" {% if record.centro == 'Sì' %}checked{% endif %}>
                 <label for="opt_centro" class="result-label"><span class="result-icon">🎯</span>CENTRO</label>
             </div>
@@ -131,7 +131,7 @@
                 <div class="section-title">Bicchieri Speciali</div>
                 <div class="multi-group">
                     <input type="radio" id="multi_none" name="bicchieri_multipli" value="" onclick="handleLogic()" {% if not record.bicchieri_multipli %}checked{% endif %}>
-                    
+
                     <input type="radio" id="multi_doppio" name="bicchieri_multipli" value="Doppio" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Doppio' %}checked{% endif %}>
                     <label for="multi_doppio" class="multi-label">Doppio</label>
 
@@ -140,10 +140,10 @@
 
                     <input type="radio" id="multi_quadruplo" name="bicchieri_multipli" value="Quadruplo" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Quadruplo' %}checked{% endif %}>
                     <label for="multi_quadruplo" class="multi-label">Quad</label>
-                    
+
                     <input type="radio" id="multi_quintuplo" name="bicchieri_multipli" value="Quintuplo" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Quintuplo' %}checked{% endif %}>
                     <label for="multi_quintuplo" class="multi-label">Quint</label>
-                    
+
                     <input type="radio" id="multi_sestuplo" name="bicchieri_multipli" value="Sestuplo" onclick="handleLogic()" {% if record.bicchieri_multipli == 'Sestuplo' %}checked{% endif %}>
                     <label for="multi_sestuplo" class="multi-label">Sest</label>
                 </div>
@@ -175,8 +175,8 @@
 
         <button type="submit" class="btn-submit">SALVA MODIFICHE</button>
     </form>
-    
-    <a href="{{ url_for('index', player_name=player_name) }}" class="btn-cancel">Annulla</a>
+
+    <a href="{{ url_for('main.index', player_name=player_name) }}" class="btn-cancel">Annulla</a>
 </div>
 
 <script>
@@ -184,8 +184,8 @@
     const savedCupsString = "{{ record.bicchiere_colpito }}";
     // Converti la stringa in un array pulito per il confronto
     const savedCupsArray = savedCupsString.split(',').map(s => s.trim());
-    
-    // IMPORTANTE: Questi nomi devono essere IDENTICI a quelli in app.py (CUP_DEFINITIONS)
+
+    // Configurazione Bicchieri
     const bicchieriOptions = {
         "Piramide": ["3 Sx", "3 Cen", "3 Dx", "2 Sx", "2 Dx", "1 Cen"],
         "Rombo": ["R3 Cen", "R2 Sx", "R2 Dx", "R1 Cen"],
@@ -201,22 +201,20 @@
         const selectedFormato = formatoSelect.value;
         const optionsArray = bicchieriOptions[selectedFormato] || bicchieriOptions["Piramide"];
 
-        container.innerHTML = ''; 
+        container.innerHTML = '';
 
-        // Genera i bicchieri in ordine inverso (dal basso verso l'alto come visuale)
-        // Oppure standard, qui usiamo l'ordine array
         const displayArray = [...optionsArray].reverse();
 
         displayArray.forEach(function(optionText, index) {
             const div = document.createElement('div');
             div.className = 'cup-item';
-            
+
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.name = 'bicchiere_colpito';
             checkbox.value = optionText;
             checkbox.id = 'cup_' + index;
-            checkbox.onclick = checkLimit; 
+            checkbox.onclick = checkLimit;
 
             // Se il nome del bicchiere è presente nell'array salvato, selezionalo
             if (savedCupsArray.includes(optionText)) {
@@ -225,7 +223,7 @@
 
             const label = document.createElement('label');
             label.htmlFor = 'cup_' + index;
-            label.setAttribute('data-name', optionText); // Per mostrare il nome sotto
+            label.setAttribute('data-name', optionText);
 
             div.appendChild(checkbox);
             div.appendChild(label);
@@ -236,7 +234,6 @@
     function checkLimit() {
         const checked = document.querySelectorAll('input[name="bicchiere_colpito"]:checked');
         const limit = getCurrentLimit();
-        // Se provi a selezionarne più del limite, deseleziona l'ultimo
         if (checked.length > limit) {
             this.checked = false; 
             alert("Hai selezionato 'Multiplo: " + limit + "'. Non puoi selezionare più bicchieri.");

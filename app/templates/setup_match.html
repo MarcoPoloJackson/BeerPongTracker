@@ -5,11 +5,11 @@
     <title>Configura Tavolo</title>
     <style>
         /* --- BASE & BACKGROUND --- */
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
-            padding: 20px; 
-            color: #333; 
+            padding: 20px;
+            color: #333;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -18,47 +18,55 @@
         }
 
         /* --- MAIN GLASS CONTAINER --- */
-        .container { 
+        .container {
             width: 100%;
-            max-width: 750px; 
-            background: rgba(255, 255, 255, 0.65); 
-            backdrop-filter: blur(12px); 
+            max-width: 750px;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.4);
-            padding: 40px; 
-            border-radius: 25px; 
+            padding: 40px;
+            border-radius: 25px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.05);
         }
-        
-        h1 { 
+
+        h1 {
             text-align: center; color: #2c3e50; margin-bottom: 30px; font-weight: 800; letter-spacing: 1px;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
         }
-        
+
         /* --- FORM STYLES --- */
         .form-group { margin-bottom: 25px; }
         label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1.5px; }
-        
-        input[type="text"], select { 
-            width: 100%; padding: 14px; 
-            border: 1px solid rgba(0,0,0,0.1); 
-            border-radius: 12px; 
-            font-size: 16px; box-sizing: border-box; 
-            background: rgba(255,255,255,0.8); 
+
+        input[type="text"], select {
+            width: 100%; padding: 14px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            font-size: 16px; box-sizing: border-box;
+            background: rgba(255,255,255,0.8);
             color: #333;
             outline: none; transition: all 0.3s;
         }
-        input[type="text"]:focus, select:focus { 
-            border-color: #3498db; background: white; box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15); 
+        input[type="text"]:focus, select:focus {
+            border-color: #3498db; background: white; box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15);
+        }
+
+        /* --- STATUS DROPDOWN STYLE --- */
+        .status-select {
+            border: 2px solid #f39c12;
+            background: #fdf2e9;
+            color: #d35400;
+            font-weight: bold;
         }
 
         /* --- TEAMS LAYOUT (Verticale) --- */
         .teams-wrapper { display: flex; flex-direction: column; gap: 25px; margin-top: 35px; }
-        
+
         /* CARD SQUADRA VETRO COLORATO */
-        .team-glass-card { 
-            border-radius: 20px; 
-            overflow: hidden; 
+        .team-glass-card {
+            border-radius: 20px;
+            overflow: hidden;
             padding: 25px;
             border: 1px solid rgba(255,255,255,0.3);
             box-shadow: 0 8px 20px rgba(0,0,0,0.03);
@@ -66,9 +74,9 @@
 
         /* Vetro Blu */
         .blue-glass {
-            background: rgba(33, 150, 243, 0.4); 
-            border-color: rgba(33, 150, 243, 0.5); 
-            box-shadow: none; 
+            background: rgba(33, 150, 243, 0.4);
+            border-color: rgba(33, 150, 243, 0.5);
+            box-shadow: none;
         }
         .blue-glass .team-title { color: #1976D2; }
 
@@ -79,21 +87,21 @@
             box-shadow: none;
         }
         .red-glass .team-title { color: #D32F2F; }
-        
-        .team-title { 
-            text-align: center; font-weight: 900; font-size: 1.3em; letter-spacing: 2px; 
-            text-transform: uppercase; margin-bottom: 20px; 
+
+        .team-title {
+            text-align: center; font-weight: 900; font-size: 1.3em; letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 20px;
         }
 
         .players-row { display: flex; gap: 20px; align-items: stretch; }
-        
-        .player-box { 
+
+        .player-box {
             flex: 1; text-align: center;
             background: rgba(255,255,255,0.4); padding: 15px;
             border-radius: 15px; border: 2px dashed rgba(0,0,0,0.05);
             display: flex; flex-direction: column; justify-content: space-between;
         }
-        
+
         .pos-icon { font-size: 1.8em; display: block; margin-bottom: 5px; opacity: 0.8; }
         .pos-label { font-weight: bold; font-size: 0.85em; color: #666; text-transform: uppercase; margin-bottom: 10px; display: block; }
 
@@ -101,11 +109,11 @@
         .vs-badge { background: rgba(0,0,0,0.05); color: #555; font-weight: 900; padding: 5px 15px; border-radius: 30px; font-size: 1em; border: 1px solid rgba(0,0,0,0.1); z-index: 2; }
         .vs-line { position: absolute; width: 100%; height: 2px; background: rgba(0,0,0,0.05); z-index: 1; }
 
-        .btn-save { 
-            width: 100%; padding: 18px; 
-            background: linear-gradient(135deg, #2ecc71, #27ae60); 
-            color: white; border: none; border-radius: 50px; 
-            font-size: 1.3em; font-weight: 900; cursor: pointer; margin-top: 40px; 
+        .btn-save {
+            width: 100%; padding: 18px;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white; border: none; border-radius: 50px;
+            font-size: 1.3em; font-weight: 900; cursor: pointer; margin-top: 40px;
             box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3); transition: all 0.2s;
             text-transform: uppercase; letter-spacing: 1px;
         }
@@ -121,17 +129,29 @@
 
 <div class="container">
     <h1>{% if match %}Modifica Tavolo{% else %}Prepara il Tavolo{% endif %}</h1>
-    
+
     <form method="POST" id="setupForm">
         <input type="hidden" name="mode" value="squadre">
-        
+
         <div class="form-group" style="text-align: center;">
             <label>🏷️ Nome del Tavolo (Opzionale)</label>
             <input type="text" name="match_name" placeholder="Es. Tavolo della Finale" value="{{ match.match_name if match else '' }}" style="text-align: center; font-weight: bold; font-size: 1.1em;">
         </div>
 
+        {% if match %}
+        <div class="form-group" style="text-align: center; margin-top: 15px;">
+            <label style="color: #e67e22;">⚙️ STATO PARTITA</label>
+            <select name="status" class="status-select">
+                <option value="running" {% if match.status == 'running' %}selected{% endif %}>🟢 In Corso (Running)</option>
+                <option value="finished" {% if match.status == 'finished' %}selected{% endif %}>🏁 Terminata (Finished)</option>
+                <option value="redemption_t1" {% if match.status == 'redemption_t1' %}selected{% endif %}>🔥 Redemption (T1 deve recuperare)</option>
+                <option value="redemption_t2" {% if match.status == 'redemption_t2' %}selected{% endif %}>🔥 Redemption (T2 deve recuperare)</option>
+            </select>
+        </div>
+        {% endif %}
+
         <div class="teams-wrapper">
-            
+
             <div class="team-glass-card blue-glass">
                 <div class="team-title">🔵 Squadra Blu</div>
                 <div class="players-row">
@@ -140,7 +160,7 @@
                         <select name="t1_p1" class="player-select" required>
                             <option value="">-- Seleziona --</option>
                             {% for p in players %}
-                                <option value="{{ p.name }}" 
+                                <option value="{{ p.name }}"
                                     {% if match and match.t1_p1 == p.name %}selected{% endif %}
                                     {% if p.name in busy_players %}disabled{% endif %}>
                                     {{ p.name }} {% if p.name in busy_players %}(In gioco){% endif %}
@@ -153,7 +173,7 @@
                         <select name="t1_p2" class="player-select" required>
                             <option value="">-- Seleziona --</option>
                             {% for p in players %}
-                                <option value="{{ p.name }}" 
+                                <option value="{{ p.name }}"
                                     {% if match and match.t1_p2 == p.name %}selected{% endif %}
                                     {% if p.name in busy_players %}disabled{% endif %}>
                                     {{ p.name }} {% if p.name in busy_players %}(In gioco){% endif %}
@@ -177,7 +197,7 @@
                         <select name="t2_p1" class="player-select" required>
                             <option value="">-- Seleziona --</option>
                             {% for p in players %}
-                                <option value="{{ p.name }}" 
+                                <option value="{{ p.name }}"
                                     {% if match and match.t2_p1 == p.name %}selected{% endif %}
                                     {% if p.name in busy_players %}disabled{% endif %}>
                                     {{ p.name }} {% if p.name in busy_players %}(In gioco){% endif %}
@@ -190,7 +210,7 @@
                         <select name="t2_p2" class="player-select" required>
                             <option value="">-- Seleziona --</option>
                             {% for p in players %}
-                                <option value="{{ p.name }}" 
+                                <option value="{{ p.name }}"
                                     {% if match and match.t2_p2 == p.name %}selected{% endif %}
                                     {% if p.name in busy_players %}disabled{% endif %}>
                                     {{ p.name }} {% if p.name in busy_players %}(In gioco){% endif %}
@@ -203,10 +223,10 @@
 
         </div>
 
-        <button type="submit" class="btn-save">{% if match %}Salva Configurazione{% else %}INIZIA LA PARTITA!{% endif %}</button>
+        <button type="submit" class="btn-save">{% if match %}Salva Modifiche{% else %}INIZIA LA PARTITA!{% endif %}</button>
     </form>
-    
-    <a href="{{ url_for('select_player') }}" class="btn-cancel">Annulla</a>
+
+    <a href="{{ url_for('main.select_player') }}" class="btn-cancel">Annulla</a>
 </div>
 
 <script>
@@ -215,7 +235,7 @@
     function updateOptions() {
         // Prendi i valori selezionati SOLO in questo form
         const selectedValues = Array.from(selects).map(s => s.value).filter(v => v !== "");
-        
+
         selects.forEach(select => {
             const currentVal = select.value;
             Array.from(select.options).forEach(option => {

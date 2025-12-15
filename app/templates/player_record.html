@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+
+{% block title %}Partita - {{ player_name }}{% endblock %}
+
+{% block styles %}
+    <style>
+        /* --- TURN BLOCKER OVERLAY --- */
+        .turn-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px; /* Covers controls */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-top: 2px solid #ddd;
+            box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .turn-overlay.hidden {
+            transform: translateY(110%); /* Slide down to hide */
+        }
+
+        .turn-message {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        .turn-player-name {
+            font-size: 1.5em;
+            color: #2c3e50;
+            font-weight: 900;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .turn-subtext {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        /* Pulse animation for the active player name */
+        @keyframes pulse-text {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .waiting-anim {
+            animation: pulse-text 1.5s infinite;
+        }
+
+        /* --- LAYOUT & ANIMATIONS --- */
+        body {
+            background-color: #f0f2f5;
+            transition: background 0.5s;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 120px;
+        }
+
+        /* HEADER */
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+
+        /* GRID CONTAINER */
+        .cups-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            min-height: 200px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .cup-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        /* --- CUP STYLING --- */
+        .cup-circle {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #e74c3c, #c0392b); /* Plastic Red Cup */
+            border: 4px solid #fff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), inset 0 -5px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+            z-index: 10;
+        }
+
+        /* 1. ELIMINATED CUP */
+        .cup-circle.eliminated {
+            opacity: 0.05;
+            pointer-events: none;
+            filter: grayscale(100%);
+            transform: scale(0.8);
+            box-shadow: none;
+            border: 2px dashed #ccc;
+        }
+
+        /* 2. PENDING HIT */
+        .cup-circle.pending-hit {
+            background: radial-gradient(circle at 35% 35%, #3498db, #2980b9);
+            animation: pulse-blue 1.5s infinite;
+        }
+
+        /* 3. SELECTED */
+        .cup-circle.selected {
+            background: radial-gradient(circle at 35% 35%, #2ecc71, #27ae60);
+            transform: scale(1.15);
+            box-shadow: 0 0 20px #2ecc71;
+            z-index: 20;
+        }
+
+        .cup-circle input { display: none; }
+
+        /* --- CONTROLS --- */
+        .controls-area {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 0.1s;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-action:active { transform: scale(0.95); }
+        .btn-miss { background: #95a5a6; }
+        .btn-bordo { background: #f39c12; }
+        .btn-centro { background: #2ecc71; flex: 1.5; font-size: 1.2em; }
+
+        /* --- TURN WAITING OVERLAY --- */
+        #sync-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2ecc71;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .syncing { opacity: 1 !important; }
+
+        @keyframes pulse-blue {
+            0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+
+        <div class="nav-header">
+            <a href="{{ url_for('main.select_player') }}" class="btn-back">⬅ Esci</a>
+            <div style="text-align:center;">
+                <div style="font-weight: 800; color: #2c3e50;">{{ player_name }}</div>
+                {% if teammate %}
+                    <div style="font-size: 0.8em; color: #888;">Compagno: {{ teammate }}</div>{% endif %}
+            </div>
+            <div id="sync-indicator" title="Syncing..."></div>
+        </div>
+
+        <form action="{{ url_for('main.add_record', match_id=defaults.match_id, player_name=player_name) }}" method="POST" id="gameForm">
+            <input type="hidden" name="match_id" value="{{ defaults.match_id }}">
+            <input type="hidden" name="formato" id="input_formato" value="{{ defaults.formato }}">
+
+            <div style="background:white; padding:10px; border-radius:15px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" name="tiro_salvezza" value="Sì" style="width:20px; height:20px; margin-right:5px;">
+                    <span style="font-weight:bold; font-size:0.9em;">🛡️ Salvezza</span>
+                </label>
+                <select name="bicchieri_multipli" style="padding:5px; border-radius:8px; border:1px solid #ddd;">
+                    <option value="">Colpo Singolo</option>
+                    <option value="Doppio">Doppio (2x)</option>
+                    <option value="Triplo">Triplo (3x)</option>
+                </select>
+            </div>
+
+            <div style="text-align:center; font-weight:bold; color:#aaa; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">
+                BERSAGLIO
+            </div>
+
+            <div id="their-cups-grid" class="cups-container">
+            </div>
+
+            <div class="controls-area">
+                <input type="radio" name="risultato_tiro" value="Miss" id="opt_miss" style="display:none;" onclick="submitAction('Miss')">
+                <input type="radio" name="risultato_tiro" value="Bordo" id="opt_bordo" style="display:none;" onclick="submitAction('Bordo')">
+                <input type="radio" name="risultato_tiro" value="Centro" id="opt_centro" style="display:none;" onclick="toggleCenterMode()">
+
+                <label for="opt_miss" class="btn-action btn-miss">Miss</label>
+                <label for="opt_bordo" class="btn-action btn-bordo">Bordo</label>
+                <label for="opt_centro" class="btn-action btn-centro" id="btn-centro-label">Centro</label>
+            </div>
+
+            <input type="hidden" id="rehit_list" name="rehit_list">
+        </form>
+
+        <div id="turn-blocker" class="turn-overlay {% if current_shooter == player_name or not current_shooter %}hidden{% endif %}">
+            <div class="turn-message">In attesa di...</div>
+            <div class="turn-player-name waiting-anim" id="current-shooter-display">
+                {{ current_shooter if current_shooter else "" }}
+            </div>
+            <div class="turn-subtext">I controlli si sbloccheranno automaticamente.</div>
+        </div>
+        <div style="text-align:center; margin-top:30px; opacity:0.6; font-size:0.8em;">
+            Status: <span id="connection-status">Online</span>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // ==========================================
+        // 1. CONFIGURATION & STATE
+        // ==========================================
+        const PLAYER_NAME = "{{ player_name }}";
+        const MATCH_ID = "{{ defaults.match_id }}"; // Store Match ID for JS use
+        let localCurrentShooter = "{{ current_shooter }}";
+
+        const POLLING_RATE = 2500;
+        const IDLE_TIMEOUT = 120000;
+        const IS_GAME_OVER = {{ 'true' if game_result else 'false' }};
+
+        let localOppActiveCups = {{ defaults.opp_active_cups | tojson | default('[]') }};
+        let localOppPendingCups = {{ defaults.opp_pending_cups | tojson | default('[]') }};
+        let currentFormat = "{{ defaults.formato }}";
+
+        let lastStateSignature = "";
+        let isCenterMode = false;
+        let pollInterval = null;
+        let lastInteractionTime = Date.now();
+
+        const visualLayouts = {
+            "Piramide": [["3 Sx", "3 Cen", "3 Dx"], ["2 Sx", "2 Dx"], ["1 Cen"]],
+            "Rombo": [["R3 Cen"], ["R2 Sx", "R2 Dx"], ["R1 Cen"]],
+            "Triangolo": [["T2 Sx", "T2 Dx"], ["T1 Cen"]],
+            "Linea Verticale": [["LV 2"], ["LV 1"]],
+            "Linea Orizzontale": [["LO Sx", "LO Dx"]],
+            "Singolo Centrale": [["Singolo"]]
+        };
+
+        // ==========================================
+        // 2. SMART POLLING
+        // ==========================================
+        async function checkServerStatus() {
+            // 1. Checks BEFORE making any network call
+            if (IS_GAME_OVER) return;
+            if (document.hidden) return;
+
+            // Idle Check
+            if (Date.now() - lastInteractionTime > IDLE_TIMEOUT) {
+                stopPolling();
+                const statusEl = document.getElementById('connection-status');
+                if (statusEl) statusEl.innerText = "⏸️ In Pausa (Tocca per riattivare)";
+                return;
+            }
+
+            const indicator = document.getElementById('sync-indicator');
+
+            try {
+                if (indicator) indicator.classList.add('syncing');
+
+                // CORRECTED FETCH: Uses MATCH_ID
+                const response = await fetch(`/api/match/${MATCH_ID}/status/${PLAYER_NAME}`);
+
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+
+                const data = await response.json();
+
+                // A. GAME OVER LOGIC
+                if (data.active === false) {
+                    stopPolling();
+                    if (!IS_GAME_OVER) {
+                        window.location.reload();
+                    }
+                    return;
+                }
+
+                // B. TURN BLOCKER LOGIC
+                if (data.current_shooter) {
+                    const shooterDisplay = document.getElementById('current-shooter-display');
+                    if (shooterDisplay) shooterDisplay.innerText = data.current_shooter;
+
+                    const blocker = document.getElementById('turn-blocker');
+                    if (blocker) {
+                        if (data.is_my_turn) {
+                            blocker.classList.add('hidden');
+                        } else {
+                            blocker.classList.remove('hidden');
+                            if (document.querySelector('.cup-circle.selected')) {
+                                if (typeof resetSelections === 'function') resetSelections();
+                                if (typeof toggleCenterMode === 'function' && isCenterMode) toggleCenterMode();
+                            }
+                        }
+                    }
+                }
+
+                // C. STATE CHANGE RELOAD
+                if (lastStateSignature && data.state_signature !== lastStateSignature) {
+                    console.log("⚡ New data detected. Updating...");
+                    window.location.reload();
+                    return;
+                }
+
+                lastStateSignature = data.state_signature;
+                const statusEl = document.getElementById('connection-status');
+                if (statusEl) statusEl.innerText = "Online 🟢";
+
+            } catch (e) {
+                console.error("Sync error:", e);
+                const statusEl = document.getElementById('connection-status');
+                if (statusEl) statusEl.innerText = "Disconnesso 🔴";
+            } finally {
+                if (indicator) setTimeout(() => indicator.classList.remove('syncing'), 500);
+            }
+        }
+
+        function startPolling() {
+            if (IS_GAME_OVER) {
+                console.log("Game Over: Polling disabled.");
+                return;
+            }
+            if (!pollInterval) {
+                checkServerStatus();
+                pollInterval = setInterval(checkServerStatus, POLLING_RATE);
+                console.log("🔄 Sync Started");
+            }
+            lastInteractionTime = Date.now();
+            document.getElementById('connection-status').innerText = "Online 🟢";
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+                console.log("⏸️ Sync Paused");
+            }
+        }
+
+        // ==========================================
+        // 3. LISTENERS
+        // ==========================================
+        function resetIdleTimer() {
+            lastInteractionTime = Date.now();
+            if (!pollInterval && !document.hidden && !IS_GAME_OVER) {
+                startPolling();
+            }
+        }
+
+        document.addEventListener('click', resetIdleTimer);
+        document.addEventListener('touchstart', resetIdleTimer);
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) stopPolling();
+            else startPolling();
+        });
+
+        // ==========================================
+        // 4. RENDERING & UI
+        // ==========================================
+        function renderGrid() {
+            const container = document.getElementById('their-cups-grid');
+            container.innerHTML = '';
+            const layout = visualLayouts[currentFormat] || visualLayouts["Piramide"];
+
+            layout.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'cup-row';
+                row.forEach(cupName => {
+                    const circle = document.createElement('div');
+                    circle.className = 'cup-circle';
+                    if (!localOppActiveCups.includes(cupName)) circle.classList.add('eliminated');
+                    if (localOppPendingCups.includes(cupName)) circle.classList.add('pending-hit');
+
+                    if (localOppActiveCups.includes(cupName)) {
+                        circle.onclick = () => toggleSelection(circle, cupName);
+                        const cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.name = 'bicchiere_colpito';
+                        cb.value = cupName;
+                        circle.appendChild(cb);
+                    }
+                    rowDiv.appendChild(circle);
+                });
+                container.appendChild(rowDiv);
+            });
+        }
+
+        function toggleCenterMode() {
+            const btn = document.getElementById('btn-centro-label');
+            isCenterMode = !isCenterMode;
+            if (isCenterMode) {
+                btn.innerText = "Tocca Bicchieri";
+                btn.style.background = "#fff";
+                btn.style.color = "#2ecc71";
+                document.getElementById('their-cups-grid').style.background = "#e8f5e9";
+            } else {
+                btn.innerText = "Centro";
+                btn.style.background = "";
+                btn.style.color = "";
+                document.getElementById('their-cups-grid').style.background = "white";
+                resetSelections();
+            }
+        }
+
+        function toggleSelection(el, cupName) {
+            if (!isCenterMode) {
+                alert("Clicca prima su 'CENTRO'!");
+                return;
+            }
+            const cb = el.querySelector('input');
+            if (el.classList.contains('selected')) {
+                el.classList.remove('selected');
+                cb.checked = false;
+            } else {
+                el.classList.add('selected');
+                cb.checked = true;
+                setTimeout(() => {
+                    if (confirm(`Confermi di aver colpito: ${cupName}?`)) {
+                        document.getElementById('gameForm').submit();
+                    } else {
+                        el.classList.remove('selected');
+                        cb.checked = false;
+                    }
+                }, 100);
+            }
+        }
+
+        function resetSelections() {
+            document.querySelectorAll('.cup-circle.selected').forEach(el => {
+                el.classList.remove('selected');
+                el.querySelector('input').checked = false;
+            });
+        }
+
+        function submitAction(type) {
+            document.getElementById('gameForm').submit();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGrid();
+            startPolling();
+        });
+
+    </script>
+{% endblock %}
