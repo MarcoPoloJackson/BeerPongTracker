@@ -748,6 +748,9 @@ def index(player_name):
     # Recuperiamo il flag specifico per l'inizio overtime
     show_ot_flash = session.pop('animazione_overtime_start', False)
 
+    # Recuperiamo la modalità per passarla al template (così lo sfondo resta attivo)
+    match_mode = match.mode if match else 'standard'
+
 
     return render_template('player_record.html', 
                            dati=clean_records, 
@@ -760,6 +763,7 @@ def index(player_name):
                            redemption_info=redemption_info,
                            format_locked=format_locked,
                            fe_risultato_partita=fe_risultato_partita,
+                           match_mode = match_mode,
                            game_result=game_result,
                            match_score_diff=match_score_diff,
                            is_split_context=is_split_context,
