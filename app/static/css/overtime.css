@@ -1,0 +1,153 @@
+/* ============================================================
+   OVERTIME.CSS - ULTIMATE STORM EDITION
+   ============================================================ */
+
+/* --- 1. BASE ATMOSPHERE --- */
+body.overtime-active {
+    background: linear-gradient(to bottom, #050510 0%, #100a25 40%, #02010a 100%) !important;
+    color: #fff !important;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* --- 2. LAYERS ATMOSFERICI ANIMATI --- */
+
+/* LAYER A: Flash di luce diffusa (Illumina tutto il cielo) */
+body.overtime-active::before {
+    content: "";
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #fff;
+    opacity: 0;
+    z-index: -4; /* Dietro a tutto */
+    pointer-events: none;
+    animation: bigSkyFlash 10s infinite; /* Flash occasionali */
+}
+
+/* LAYER B: Nebbia Elettrica */
+.ot-fog-layer {
+    position: fixed; top: 0; left: 0; width: 300%; height: 100%;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent 0%,
+        rgba(100, 0, 255, 0.03) 10%,
+        transparent 20%,
+        rgba(0, 200, 255, 0.03) 30%
+    );
+    filter: blur(40px);
+    z-index: -3;
+    animation: fogMove 60s linear infinite;
+}
+
+/* LAYER C: Scintille ascendenti */
+.ot-sparks-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -2; overflow: hidden; pointer-events: none;
+}
+.ot-spark {
+    position: absolute; bottom: -10px;
+    width: 2px; height: 2px;
+    background: #fff; border-radius: 50%;
+    box-shadow: 0 0 10px #00e5ff;
+    animation: riseUp 5s infinite linear; opacity: 0;
+}
+.s1 { left: 10%; animation-delay: 0s; } .s2 { left: 40%; animation-delay: 2s; }
+.s3 { left: 70%; animation-delay: 1s; } .s4 { left: 90%; animation-delay: 3s; }
+
+/* LAYER D: VERI FULMINI (SVG BOLTS) */
+.ot-lightning-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1; /* Dietro al testo ma davanti allo sfondo */
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.ot-bolt {
+    position: absolute;
+    opacity: 0;
+    filter: drop-shadow(0 0 15px #00e5ff) drop-shadow(0 0 30px #fff);
+    fill: #ffffff;
+}
+
+/* Definiamo 3 tipi di fulmini posizionati diversamente */
+.bolt-left {
+    top: -50px; left: 5%; width: 300px;
+    transform: rotate(10deg);
+    animation: thunderStrike 7s infinite 1.5s; /* Ritardo 1.5s */
+}
+
+.bolt-right {
+    top: -80px; right: -50px; width: 400px;
+    transform: rotate(-15deg) scaleX(-1); /* Specchiato */
+    animation: thunderStrike 11s infinite 4s; /* Ritardo 4s */
+}
+
+.bolt-center {
+    top: 10%; left: 40%; width: 250px;
+    transform: rotate(5deg);
+    animation: thunderStrike 5s infinite 0s; /* Subito */
+}
+
+
+/* --- 3. IL TESTO PRINCIPALE --- */
+.ot-hero-container {
+    position: relative; width: 100%; text-align: center;
+    margin-top: 20px; margin-bottom: 40px; z-index: 10;
+    padding: 20px 0;
+}
+
+.ot-mega-title {
+    font-family: 'Impact', sans-serif;
+    font-size: 5rem; line-height: 1; margin: 0;
+    color: transparent;
+    -webkit-text-stroke: 2px #fff;
+    text-shadow: 0 0 30px #00e5ff;
+    animation: textGlitchTension 0.2s infinite alternate-reverse;
+}
+
+.ot-sudden-death {
+    display: block; font-size: 1.5rem; font-weight: 900;
+    letter-spacing: 10px; color: #d500f9;
+    text-shadow: 0 0 20px #d500f9; margin-top: 10px;
+}
+
+/* --- 4. ANIMAZIONI --- */
+
+/* L'animazione del fulmine: Doppio colpo veloce (Strobe effect) */
+@keyframes thunderStrike {
+    0% { opacity: 0; }
+    1% { opacity: 1; } /* CRACK! */
+    2% { opacity: 0; }
+    3% { opacity: 1; } /* CRACK di nuovo! */
+    5% { opacity: 0; }
+    100% { opacity: 0; }
+}
+
+@keyframes bigSkyFlash {
+    0%, 92% { opacity: 0; }
+    93% { opacity: 0.3; } /* Illumina il cielo leggermente */
+    94% { opacity: 0; }
+    96% { opacity: 0.6; } /* Illumina forte */
+    98% { opacity: 0; }
+}
+
+@keyframes fogMove { 0% { transform: translateX(0); } 100% { transform: translateX(-20%); } }
+@keyframes riseUp { 0% { transform: translateY(0) scale(1); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-80vh) scale(0); opacity: 0; } }
+
+@keyframes textGlitchTension {
+    0% { transform: skewX(0deg); opacity: 1; }
+    20% { transform: skewX(-1deg); opacity: 0.9; }
+    40% { transform: skewX(1deg); opacity: 1; }
+    100% { transform: skewX(0deg); }
+}
+
+/* --- OVERRIDES PER INTERFACCIA (Trasparenza) --- */
+body.overtime-active .card, 
+body.overtime-active .main-container {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(2px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+body.overtime-active .section-title, 
+body.overtime-active label { color: #ddd !important; text-shadow: 1px 1px 2px #000; }
+body.overtime-active .nav-header { background: transparent !important; }

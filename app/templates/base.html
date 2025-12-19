@@ -9,11 +9,10 @@
 
     {% block styles %}{% endblock %}
 </head>
-<body>
 
-    <div class="main-wrapper">
-        {% block content %}{% endblock %}
-    </div>
+<body class="{% block body_class %}{% endblock %}">
+
+    {% block content %}{% endblock %}
 
     {% block scripts %}{% endblock %}
 

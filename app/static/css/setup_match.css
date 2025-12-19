@@ -1,0 +1,356 @@
+/* ==========================================
+   SETUP MATCH - CYBER ARENA STYLE
+   ========================================== */
+
+/* Font moderno se disponibile, altrimenti system */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    /* Sfondo scuro profondo e moderno */
+    background: radial-gradient(circle at center, #1a1c29 0%, #0f1016 100%);
+    margin: 0;
+    padding: 20px;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* --- MAIN CONTAINER (Vetro Scuro) --- */
+.container {
+    width: 100%;
+    max-width: 1000px;
+    background: rgba(20, 20, 30, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Effetto luce ambientale in alto */
+.container::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+/* --- HEADER & INPUT --- */
+h1 {
+    text-align: center;
+    margin: 0;
+    font-weight: 900;
+    font-size: 2.5em;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    background: linear-gradient(to right, #fff, #aaa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.match-settings {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.input-name {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 15px 25px;
+    border-radius: 50px;
+    font-size: 1.1em;
+    color: #fff;
+    width: 60%;
+    text-align: center;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+.input-name:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    outline: none;
+    box-shadow: 0 0 20px rgba(255,255,255,0.1);
+}
+.input-name::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+/* --- ARENA LAYOUT --- */
+.arena-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+}
+
+/* Colonne Squadre */
+.team-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 25px;
+    border-radius: 25px;
+    transition: transform 0.3s;
+}
+
+/* SQUADRA BLU (Neon Cyan) */
+.team-blue {
+    background: linear-gradient(180deg, rgba(0, 242, 254, 0.05) 0%, rgba(0,0,0,0) 100%);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+}
+.team-blue .team-header { color: #00f2fe; text-shadow: 0 0 15px rgba(0, 242, 254, 0.6); }
+
+/* SQUADRA ROSSA (Neon Red) */
+.team-red {
+    background: linear-gradient(180deg, rgba(255, 0, 85, 0.05) 0%, rgba(0,0,0,0) 100%);
+    border: 1px solid rgba(255, 0, 85, 0.2);
+}
+.team-red .team-header { color: #ff0055; text-shadow: 0 0 15px rgba(255, 0, 85, 0.6); }
+
+.team-header {
+    text-align: center;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 1.4em;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+/* --- VS BADGE --- */
+.vs-badge {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px; height: 60px;
+    background: #111;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 1.2em;
+    z-index: 10;
+    box-shadow: 0 0 30px rgba(255,255,255,0.2);
+}
+
+/* --- SLOT CARDS --- */
+.slot-card {
+    background: rgba(0,0,0,0.3);
+    border: 2px dashed rgba(255,255,255,0.15);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.slot-card:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.4);
+    transform: translateY(-3px);
+}
+
+/* Slot Attivo (Selezione in corso) */
+.slot-card.active-slot {
+    border: 2px solid #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    animation: pulse-gold 1.5s infinite;
+}
+
+/* Slot Riempito */
+.slot-card.filled {
+    border-style: solid;
+    background: rgba(255,255,255,0.9);
+}
+.team-blue .slot-card.filled { border-color: #00f2fe; box-shadow: 0 0 15px rgba(0, 242, 254, 0.4); }
+.team-red .slot-card.filled { border-color: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.4); }
+
+.slot-pos {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 5px;
+}
+/* Se riempito, il testo della pos cambia colore per contrasto */
+.slot-card.filled .slot-pos { color: #666; }
+
+.slot-player-name {
+    font-size: 1.3em;
+    font-weight: 800;
+    color: rgba(255,255,255,0.2); /* Placeholder scuro */
+}
+.slot-card.filled .slot-player-name {
+    color: #111; /* Nome giocatore nero su sfondo bianco */
+}
+
+/* X Button */
+.remove-btn {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: #ff0000;
+    color: white;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    border: 2px solid white;
+}
+.slot-card.filled:hover .remove-btn { display: flex; }
+
+
+/* --- ROSTER SECTION --- */
+.roster-section {
+    background: rgba(0,0,0,0.2);
+    padding: 25px;
+    border-radius: 20px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.section-title {
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.player-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+
+.player-chip {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9em;
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.player-chip:hover {
+    background: #fff;
+    color: #111;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255,255,255,0.2);
+}
+
+/* Stati speciali */
+.player-chip.used {
+    opacity: 0.3;
+    filter: grayscale(100%);
+    pointer-events: none;
+    border-color: transparent;
+}
+.player-chip.busy {
+    background: rgba(50, 20, 20, 0.5);
+    border-color: rgba(255, 0, 0, 0.3);
+    color: #ff6666;
+    cursor: not-allowed;
+}
+
+/* --- ACTIONS --- */
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.btn-start {
+    padding: 20px;
+    background: linear-gradient(135deg, #00b09b, #96c93d); /* Gradient Green Matrix */
+    color: #fff;
+    border: none;
+    border-radius: 15px;
+    font-size: 1.3em;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 10px 30px rgba(0, 176, 155, 0.3);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.btn-start:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 40px rgba(0, 176, 155, 0.5);
+}
+
+.btn-cancel {
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: color 0.3s;
+}
+.btn-cancel:hover { color: #fff; }
+
+/* Animazioni */
+@keyframes pulse-gold {
+    0% { border-color: #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+    50% { border-color: #ffaa00; box-shadow: 0 0 25px rgba(255, 215, 0, 0.6); }
+    100% { border-color: #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 700px) {
+    .container { padding: 20px; }
+    .arena-wrapper { flex-direction: column; gap: 40px; }
+    .vs-badge { top: auto; bottom: auto; position: relative; transform: none; margin: -20px auto; }
+    h1 { font-size: 1.8em; }
+}
+
+/* --- AGGIUNTA PER SELEZIONE GIOCATORE --- */
+
+/* Quando clicchi un giocatore PRIMA dello slot, diventa così */
+.player-chip.active-chip {
+    background: #ffd700; /* Oro */
+    color: #000;
+    border-color: #fff;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    transform: scale(1.1);
+    z-index: 10;
+    animation: chip-pulse 1s infinite;
+}
+
+@keyframes chip-pulse {
+    0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 215, 0, 1); }
+    100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+}

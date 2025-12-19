@@ -1,0 +1,151 @@
+/* =========================================
+   FORMATO.CSS - Stile Menu & Nuova Animazione Overlay
+   ========================================= */
+
+/* --- STILI MENU A TENDINA (Invariati) --- */
+.section-title { 
+    text-align: center; font-size: 0.8em; text-transform: uppercase; 
+    color: #90a4ae; margin-bottom: 12px; font-weight: 900; 
+    letter-spacing: 2px; margin-top: 10px; text-shadow: 1px 1px 0px #fff;
+}
+
+.form-group { margin-bottom: 20px; width: 100%; position: relative; }
+
+select { 
+    width: 100%; padding: 15px; border-radius: 18px; 
+    border: 2px solid #cfd8dc; background-color: #ffffff; 
+    font-size: 16px; font-weight: 800; color: #37474f;   
+    appearance: none; text-align: center; cursor: pointer; 
+    transition: background-color 0.3s ease, border-color 0.3s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+select option { font-weight: bold; color: #333; padding: 10px; }
+
+select:disabled {
+    color: #263238 !important; border-color: #b0bec5;     
+    cursor: default; opacity: 0.9; box-shadow: none; pointer-events: none;
+}
+.format-selector-wrapper:has(select:disabled)::after { display: none; }
+
+.format-selector-wrapper::after {
+    content: '▼'; font-size: 0.8em; color: #546e7a;
+    position: absolute; right: 20px; top: 60%; 
+    pointer-events: none; transition: transform 0.3s;
+}
+.format-selector-wrapper:hover::after { transform: translateY(2px); color: #263238; }
+select:hover { border-color: #b0bec5; transform: translateY(-1px); }
+select:focus { border-color: #2196F3; outline: none; }
+
+
+/* =========================================
+   NUOVA ANIMAZIONE OVERLAY (Testo + Forma)
+   ========================================= */
+
+#format-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; /* Click passante */
+    display: flex; justify-content: center; align-items: center;
+    z-index: 10001; /* Sopra a tutto */
+}
+
+.format-content-wrapper {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; opacity: 0; /* Invisibile di base */
+    transform: scale(0.5);
+}
+
+/* --- CLASSE PER ATTIVARE L'ANIMAZIONE --- */
+.animate-format-popup {
+    animation: formatPopIn 1.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+/* --- STILE DEL TESTO --- */
+.format-text {
+    font-family: 'Arial Black', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: white;
+    text-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 30px;
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+}
+
+/* --- STILE DELLE FORME (CSS SHAPES) --- */
+.format-shape {
+    width: 150px;
+    height: 150px;
+    background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+    box-shadow: 0 10px 30px rgba(58, 123, 213, 0.5);
+    transition: all 0.3s;
+}
+
+/* 1. Forma PIRAMIDE (Triangolo) */
+.shape-piramide, .shape-minipiramide {
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); /* Arancio/Giallo */
+}
+
+/* 2. Forma ROMBO (Diamante) */
+.shape-rombo {
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); /* Ciano/Verde */
+}
+
+/* 3. Forma CASA (Pentagono) */
+.shape-casa {
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); /* Viola/Rosa */
+}
+
+/* ... altre forme (Piramide, Rombo, Casa) ... */
+
+/* 4. Forma QUADRATO (Default per 4x4, etc) */
+.shape-box {
+    border-radius: 15px; 
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+/* --- NUOVE FORME AGGIUNTE --- */
+
+/* 5. SINGOLO (Cerchio) */
+.shape-singolo {
+    border-radius: 50%; /* Questo lo rende un cerchio */
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); /* Rosa/Rosso soft */
+}
+
+/* 6. LINEA VERTICALE */
+.shape-linea-verticale {
+    width: 50px;   /* Stretto */
+    height: 150px; /* Alto */
+    border-radius: 25px; /* Bordi arrotondati */
+    background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%); /* Blu verticale */
+}
+
+/* 7. LINEA ORIZZONTALE */
+.shape-linea-orizzontale {
+    width: 150px;  /* Largo */
+    height: 50px;  /* Basso */
+    border-radius: 25px; /* Bordi arrotondati */
+    background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); /* Blu orizzontale */
+}
+
+/* ... shape-albero e keyframes rimangono uguali ... */
+
+/* 5. Forma ALBERO (Triangolo stretto + Base) - Semplificato in Triangolo stretto */
+.shape-albero {
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    width: 100px; /* Più stretto */
+    background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%); /* Verde Scuro */
+}
+
+/* --- KEYFRAMES ANIMAZIONE --- */
+@keyframes formatPopIn {
+    0% { opacity: 0; transform: scale(0.2) translateY(50px); filter: blur(10px); }
+    40% { opacity: 1; transform: scale(1.2) translateY(0); filter: blur(0px); }
+    50% { transform: scale(1); }
+    80% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0; transform: scale(1.5) translateY(-50px); filter: blur(20px); }
+}

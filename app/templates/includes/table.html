@@ -1,0 +1,64 @@
+{# includes/table.html #}
+
+{# --- SEZIONE COLPI MULTIPLI REDESIGN --- #}
+<div id="dynamic-hit-section" style="display: none; margin-top: 15px;">
+    <div id="multi-instruction" style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #2ecc71;">
+        Seleziona i bicchieri
+    </div>
+
+    <div class="multi-toggle-container">
+        <input type="radio" id="multi_none" name="bicchieri_multipli" value="" onchange="handleLogic()" checked style="display:none;">
+        
+        <div class="multi-btns-wrapper">
+            <button type="button" class="multi-btn" id="btn_doppio" onclick="toggleMultiBtn('multi_doppio')">x2</button>
+            <button type="button" class="multi-btn" id="btn_triplo" onclick="toggleMultiBtn('multi_triplo')">x3</button>
+            <button type="button" class="multi-btn" id="btn_quad" onclick="toggleMultiBtn('multi_quadruplo')">x4</button>
+            <button type="button" class="multi-btn" id="btn_quint" onclick="toggleMultiBtn('multi_quintuplo')">x5</button>
+            <button type="button" class="multi-btn" id="btn_sest" onclick="toggleMultiBtn('multi_sestuplo')">x6</button>
+        </div>
+
+        <input type="radio" id="multi_doppio" name="bicchieri_multipli" value="Doppio" onchange="handleLogic()" style="display:none;">
+        <input type="radio" id="multi_triplo" name="bicchieri_multipli" value="Triplo" onchange="handleLogic()" style="display:none;">
+        <input type="radio" id="multi_quadruplo" name="bicchieri_multipli" value="Quadruplo" onchange="handleLogic()" style="display:none;">
+        <input type="radio" id="multi_quintuplo" name="bicchieri_multipli" value="Quintuplo" onchange="handleLogic()" style="display:none;">
+        <input type="radio" id="multi_sestuplo" name="bicchieri_multipli" value="Sestuplo" onchange="handleLogic()" style="display:none;">
+    </div>
+</div>
+
+{# --- SELETTORE FORMATO --- #}
+<div class="form-group format-selector-wrapper" style="margin-top:20px;">
+    <div class="section-title">FORMATO</div>
+    
+    <select id="formato" name="formato_placeholder" 
+            onchange="handleFormatChange(this)" 
+            {% if format_locked %}disabled{% endif %} 
+            style="text-align-last:center;">
+        <option value="Piramide">Piramide</option>
+    </select>
+
+    <input type="hidden" id="hidden_formato" name="formato" value="{{ defaults.formato }}">
+</div>
+
+{# --- VISUALIZZAZIONE TAVOLO --- #}
+<div class="game-table-container-wrapper" style="margin-bottom: 20px;">
+    <div class="game-table-visual">
+        <div class="side-container their-side" id="their-cups-container">
+            <span class="side-label">Loro (Bersaglio)</span>
+            <div id="their-cups-grid"></div>
+        </div>
+
+        <div class="side-container my-side">
+            <div id="my-cups-grid"></div>
+            <span class="side-label">Nostri</span>
+        </div>
+    </div>
+</div>
+
+{# --- ALTRI INPUT NASCOSTI --- #}
+<input type="hidden" id="numero_bicchieri" name="numero_bicchieri" value="{{ defaults.numero_bicchieri }}">
+<input type="hidden" id="rehit_list" name="rehit_list" value="">
+
+{# --- NUOVO: OVERLAY PER ANIMAZIONE MOLTIPLICATORE --- #}
+<div id="multiplier-overlay">
+    <div id="multiplier-text" class="multiplier-text"></div>
+</div>

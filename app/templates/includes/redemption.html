@@ -1,0 +1,60 @@
+{# --- REDEMPTION INFERNO (AGGIORNATO) --- #}
+{% if redemption_info and redemption_info.active %}
+
+    <div class="inferno-container {% if redemption_info.is_me %}inferno-me{% else %}inferno-opponent{% endif %} fade-in-up">
+        
+        <div class="ember-overlay"></div>
+
+        <div class="inferno-content">
+            {% if redemption_info.is_me %}
+                <div class="inferno-header">
+                    <span class="fire-icon">🔥</span> TIRI SALVEZZA <span class="fire-icon">🔥</span>
+                </div>
+                
+                <div class="inferno-stats-grid">
+                    
+                    <div class="inferno-stat-box shake-constant">
+                        <div class="stat-label">TIRI RIMASTI</div>
+                        <div class="magma-number" data-count="{{ redemption_info.shots_left }}">
+                            {{ redemption_info.shots_left }}
+                        </div>
+                    </div>
+
+                    <div class="inferno-divider"></div>
+
+                    <div class="inferno-stat-box">
+                        <div class="stat-label">PER PAREGGIARE</div>
+                        <div class="magma-number target-count">
+                            {{ redemption_info.cups_to_tie }}
+                        </div>
+                    </div>
+
+                </div>
+
+                 <div class="inferno-footer">
+                    {% if redemption_info.cups_to_tie == 1 %}
+                        UN ULTIMO SFORZO. MIRA BENE.
+                    {% elif redemption_info.cups_to_tie == 0 %}
+                        TIRO LIBERO! VAI PER LA VITTORIA!
+                    {% else %}
+                        NON SBAGLIARE O È FINITA.
+                    {% endif %}
+                </div>
+
+            {% else %}
+                <div class="inferno-header opp-header">
+                    🛡️ AVVERSARI IN SALVEZZA 🛡️
+                </div>
+                <div class="opp-stat-box">
+                     <div class="opp-label">Hanno ancora</div>
+                    <div class="opp-number">
+                        {{ redemption_info.shots_left }} 
+                        <span style="font-size: 0.5em">
+                            {% if redemption_info.shots_left == 1 %}Tiro{% else %}Tiri{% endif %}
+                        </span>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}

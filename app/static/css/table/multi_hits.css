@@ -1,0 +1,101 @@
+/* ==========================================
+   MULTI_HITS.CSS 
+   ========================================== */
+
+/* --- 1. DESIGN DEI PULSANTI X2, X3... --- */
+.multi-btns-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.multi-btn {
+    border: none;
+    background: #f0f2f5;
+    color: #546e7a;
+    width: 65px;
+    height: 65px;
+    border-radius: 16px;
+    font-weight: 900;
+    font-size: 1.3em;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;
+}
+
+.multi-btn.active {
+    background: linear-gradient(135deg, #673ab7 0%, #764ba2 100%);
+    color: white;
+    transform: scale(1.15);
+    box-shadow: 0 10px 20px rgba(118, 75, 162, 0.4);
+    /* Animazione continua sul pulsante attivo */
+    animation: pulseActive 2s infinite;
+}
+
+@keyframes pulseActive {
+    0% { transform: scale(1.15); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1.15); }
+}
+
+/* --- 2. OVERLAY ANIMAZIONE A SCHERMO --- */
+#multiplier-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Permette di cliccare i bicchieri sotto l'animazione */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.multiplier-text {
+    font-family: 'Arial Black', sans-serif;
+    font-size: 5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #673ab7, #e91e63);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    padding: 20px 50px;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    
+    /* Stato iniziale nascosto */
+    opacity: 0;
+    transform: scale(0.2);
+}
+
+/* Questa è la classe chiamata dalla tua funzione JS */
+.animate-multiplier {
+    animation: bounceInAndOut 1.2s cubic-bezier(0.17, 0.89, 0.32, 1.49) forwards;
+}
+
+@keyframes bounceInAndOut {
+    0% {
+        opacity: 0;
+        transform: scale(0.2) rotate(-10deg);
+        filter: blur(10px);
+    }
+    30% {
+        opacity: 1;
+        transform: scale(1.1) rotate(0deg);
+        filter: blur(0px);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.8);
+        filter: blur(15px);
+    }
+}

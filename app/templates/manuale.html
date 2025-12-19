@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Manuale #{{ match.id }}{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/manuale.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container manual-container fade-in">
+    <h1 class="page-title">🛠️ Gestione Manuale</h1>
+    <p class="page-subtitle">Seleziona i bicchieri attivi per il match #{{ match.id }}</p>
+
+    <form action="{{ url_for('main.manual_override_post', match_id=match.id) }}" method="POST">
+        
+        <div class="manual-grid">
+            <div class="team-panel blue">
+                <span class="panel-title">🔵 Squadra Blu</span>
+                
+                <div class="form-group">
+                    <label>Formato:</label>
+                    <select name="t1_format" id="t1_format" class="form-control" onchange="renderCups('t1')">
+                        {% for fmt in cup_definitions.keys() %}
+                            <option value="{{ fmt }}" {% if match.format_target_for_t1 == fmt %}selected{% endif %}>
+                                {{ fmt }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Bicchieri in Campo:</label>
+                    <div id="t1-cups-container" class="cups-selector-grid">
+                        </div>
+                </div>
+            </div>
+
+            <div class="team-panel red">
+                <span class="panel-title">🔴 Squadra Rossa</span>
+                
+                <div class="form-group">
+                    <label>Formato:</label>
+                    <select name="t2_format" id="t2_format" class="form-control" onchange="renderCups('t2')">
+                        {% for fmt in cup_definitions.keys() %}
+                            <option value="{{ fmt }}" {% if match.format_target_for_t2 == fmt %}selected{% endif %}>
+                                {{ fmt }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Bicchieri in Campo:</label>
+                    <div id="t2-cups-container" class="cups-selector-grid">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="redemption-panel">
+            <div class="redemption-title">🔥 STATO SPECIALE & REDEMPTION</div>
+            <div class="form-group">
+                <label>Stato Partita:</label>
+                <select name="match_status" class="form-control" id="statusSelect" onchange="toggleRedemptionFields()">
+                    <option value="ongoing" {% if match.status == 'ongoing' or match.status == 'running' %}selected{% endif %}>🟢 Normale (In Corso)</option>
+                    <option value="redemption_t1" {% if match.status == 'redemption_t1' %}selected{% endif %}>🔵 Redemption BLU</option>
+                    <option value="redemption_t2" {% if match.status == 'redemption_t2' %}selected{% endif %}>🔴 Redemption ROSSA</option>
+                    <option value="overtime" {% if match.mode == 'overtime' %}selected{% endif %}>⚡ Overtime</option>
+                    <option value="finished" {% if match.status == 'finished' %}selected{% endif %}>🏁 Finita</option>
+                </select>
+            </div>
+            <div id="redemption-shots-group" class="form-group" style="display: none;">
+                <label>Colpi/Tiri Rimasti:</label>
+                <input type="number" name="redemption_shots" class="form-control" value="{{ match.redemption_shots_left }}" min="0" max="10">
+            </div>
+        </div>
+
+        <button type="submit" class="btn-save">💾 SALVA CONFIGURAZIONE</button>
+        <a href="{{ url_for('main.select_player') }}" class="btn-cancel">Annulla</a>
+    </form>
+</div>
+
+<script>
+    // 1. Dati passati da Python a JS
+    const cupDefinitions = {{ cup_definitions | tojson }};
+    
+    // Stato attuale (per preselezionare quelli giusti al caricamento)
+    const currentActiveT1 = {{ match.active_cups_t1_list | tojson }};
+    const currentActiveT2 = {{ match.active_cups_t2_list | tojson }};
+    
+    // Formato attuale salvato nel DB (per sapere se è cambiato o no)
+    const dbFormatT1 = "{{ match.format_target_for_t1 }}";
+    const dbFormatT2 = "{{ match.format_target_for_t2 }}";
+
+    // 2. Funzione principale di rendering
+    function renderCups(team) {
+        const selectId = team + "_format";
+        const containerId = team + "-cups-container";
+        const selectedFormat = document.getElementById(selectId).value;
+        const container = document.getElementById(containerId);
+        
+        container.innerHTML = ""; // Pulisce
+        
+        // Recupera la lista dei bicchieri per questo formato (es. ["1", "2", "3"])
+        const cupsList = cupDefinitions[selectedFormat] || [];
+        
+        // Determina quali devono essere spuntati
+        let cupsToheck = [];
+        
+        // SE il formato selezionato è UGUALE a quello salvato nel DB,
+        // allora mostriamo la selezione reale attuale (quelli rimasti).
+        if ( (team === 't1' && selectedFormat === dbFormatT1) ) {
+            cupsToheck = currentActiveT1;
+        } else if ( (team === 't2' && selectedFormat === dbFormatT2) ) {
+            cupsToheck = currentActiveT2;
+        } else {
+            // SE il formato è DIVERSO (l'utente lo sta cambiando ora),
+            // li selezioniamo TUTTI di default (reset del tavolo).
+            cupsToheck = cupsList; 
+        }
+
+        if (cupsList.length === 0) {
+            container.innerHTML = "<small>Nessun bicchiere definito per questo formato.</small>";
+            return;
+        }
+
+        // Crea le checkbox
+        cupsList.forEach(cupName => {
+            // Wrapper visivo
+            const label = document.createElement('label');
+            label.className = 'cup-checkbox-item';
+            
+            // Input reale (nascosto o visibile)
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.name = team + "_selected_cups"; // Fondamentale per il POST
+            input.value = cupName;
+            
+            // Logica check
+            if (cupsToheck.includes(cupName)) {
+                input.checked = true;
+            }
+            
+            // Span per testo
+            const span = document.createElement('span');
+            span.className = 'cup-label-text';
+            span.innerText = cupName;
+            
+            label.appendChild(input);
+            label.appendChild(span);
+            container.appendChild(label);
+        });
+    }
+
+    function toggleRedemptionFields() {
+        const val = document.getElementById('statusSelect').value;
+        const shotGroup = document.getElementById('redemption-shots-group');
+        if (val === 'redemption_t1' || val === 'redemption_t2') shotGroup.style.display = 'block';
+        else shotGroup.style.display = 'none';
+    }
+
+    // 3. Inizializzazione al caricamento
+    document.addEventListener('DOMContentLoaded', function() {
+        renderCups('t1');
+        renderCups('t2');
+        toggleRedemptionFields();
+    });
+</script>
+{% endblock %}

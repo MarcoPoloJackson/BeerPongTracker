@@ -1,0 +1,98 @@
+{# --- OVERLAY DI FINE PARTITA --- #}
+{% if game_result %}
+<div class="game-over-overlay overlay-{{ game_result }} {% if fe_risultato_partita and 'ASSICURATA' in fe_risultato_partita %}special-win{% endif %}">
+    <div class="game-over-content">
+        
+        {# 1. TITOLO #}
+        <div class="result-title">
+            {% if fe_risultato_partita == "VITTORIA ASSICURATA DAI TIRI SALVEZZA!!" %}
+                VITTORIA ASSICURATA DAI TIRI SALVEZZA!! 💎🔥
+            {% elif fe_risultato_partita == "VITTORIA ASSICURATA" %}
+                VITTORIA ASSICURATA! 💎🏆
+            {% elif game_result == 'win' %}
+                VITTORIA 🏆🍻
+            {% elif game_result == 'draw' %}
+                PAREGGIO 🤝⚖️
+            {% else %}
+                SCONFITTA 💀🥀
+            {% endif %}
+        </div>
+
+        {# 2. SOTTOTITOLO (Conteggio Bicchieri) #}
+        <div class="result-cups" style="font-size: 1.5rem; font-weight: bold; margin: 10px 0;">
+            {% if game_result == 'win' %}+{% endif %}
+            {% if game_result == 'loss' %}-{% endif %}
+            {{ match_score_diff }} Bicchieri
+        </div>
+
+        {# 3. DESCRIZIONE (Messaggi contestuali) #}
+        <div class="result-message">
+            {% if fe_risultato_partita == "VITTORIA ASSICURATA DAI TIRI SALVEZZA!!" %}
+                Avete fatto l'impossibile, MAI ARRENDERSI!! 🤯
+            {% elif fe_risultato_partita == "VITTORIA ASSICURATA" %}
+                Colpo di grazia! Partita chiusa istantaneamente. 🎯
+            
+            {% elif game_result == 'win' %}
+                {% if match_score_diff >= 6 %} UMILIAZIONE TOTALE! 🧹
+                {% elif match_score_diff == 5 %} NON C'È STORIA! 🏰
+                {% elif match_score_diff == 4 %} SCOPATI MALE! 💣
+                {% elif match_score_diff == 3 %} TIRATORI INSTANCABILI! 💪
+                {% elif match_score_diff == 2 %} NON CE N'È PER NESSUNO! ✅
+                {% else %} C'È MANCATO POCO! 🫨
+                {% endif %}
+
+            {% elif game_result == 'loss' %}
+                {% if match_score_diff >= 6 %} CHE MERDA. 🧑‍🦽
+                {% elif match_score_diff == 5 %} DISTRUTTI. ❓
+                {% elif match_score_diff == 4 %} VI SONO CADUTI QUESTI. 👓
+                {% elif match_score_diff == 3 %} SERATA NO. Era meglio andare al Sir. 🍺
+                {% elif match_score_diff == 2 %} CHE PECCATO! 🥲
+                {% else %} C'ERAVATE QUASI. 💔
+                {% endif %}
+
+            {% elif game_result == 'draw' %}
+                Finalmente un Avversario degno! ✊🏾
+            {% endif %}
+        </div>
+
+        {# 4. BOTTONI DI USCITA #}
+        <div style="margin-top: 30px;">
+            {# Bottone Rivincita #}
+            <a href="{{ url_for('main.rematch', match_id=defaults.match_id if defaults.match_id else 0) }}" class="btn-result btn-rematch">
+                🔄 RIVINCITA
+            </a>
+            <br>
+            {# Bottone Esci #}
+            <a href="{{ url_for('main.select_player') }}" class="btn-result btn-exit">
+                Esci al Menu
+            </a>
+        </div>
+
+    </div> </div>     {# 5. SCRIPT CORIANDOLI (Solo se si vince) #}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Legge la variabile passata da Python
+        const overlayResult = "{{ 'win' if (game_result == 'win' or 'ASSICURATA' in fe_risultato_partita) else game_result }}"; 
+        
+        if (overlayResult === 'win') {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var confDefaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10001 };
+            
+            function random(min, max) { return Math.random() * (max - min) + min; }
+            
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) { return clearInterval(interval); }
+                var particleCount = 50 * (timeLeft / duration);
+                
+                // Spara coriandoli da sinistra e destra
+                confetti(Object.assign({}, confDefaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, confDefaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+    });
+</script>
+
+{% endif %}

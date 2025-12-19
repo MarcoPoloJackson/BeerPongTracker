@@ -1,37 +1,343 @@
-/* app/static/css/main.css */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
-    margin: 0;
-    padding: 20px;
-    color: #333;
-    min-height: 100vh;
+/* =========================================
+   MAIN.CSS - Stile Globale & Gioco
+   ========================================= */
+
+/* --- BASE & TYPOGRAPHY --- */
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 10px; color: #333; }
+.container { max-width: 500px; margin: 0 auto; padding-bottom: 80px; }
+h1 { text-align: center; color: #2c3e50; font-size: 1.5em; margin-bottom: 5px; }
+
+/* --- NAVIGATION --- */
+.nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.btn-back { text-decoration: none; color: #555; font-weight: bold; background: white; padding: 8px 15px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 0.9em; }
+
+/* --- INFO CARDS --- */
+.info-card { background: white; border-radius: 15px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border-left: 5px solid #ccc; font-size: 0.9em; }
+.info-team { border-color: #2196F3; background: #e3f2fd; color: #0d47a1; text-align: center; border: 1px solid #2196F355; }
+.btn-force { background: #ffc107; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; color: #333; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+/* --- FORM STYLING --- */
+* { box-sizing: border-box; }
+form { background: white; border-radius: 25px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); width: 100%; }
+.section-title { text-align: center; font-size: 0.8em; text-transform: uppercase; color: #aaa; margin-bottom: 8px; font-weight: 800; letter-spacing: 1.5px; margin-top: 10px; }
+.form-group { margin-bottom: 20px; width: 100%; }
+
+/* --- RADIO BUTTONS (RESULT) --- */
+.result-options { display: flex; flex-direction: row; gap: 12px; width: 100%; }
+.result-options input[type="radio"] { display: none; } 
+
+.result-label { 
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 16px 6px; border-radius: 18px; border: 2px solid #b0bec5;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f9fa 100%);
+    cursor: pointer; transition: all 0.2s ease-in-out; font-weight: 900; color: #7f8c8d;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(255,255,255,0.6);
+    position: relative; overflow: hidden; 
+}
+.result-label .content { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 5; }
+
+.result-icon { font-size: 1.7em; margin-bottom: 6px; opacity: 0.85; transition: all 0.2s; }
+.result-label:hover { transform: translateY(-2px); border-color: #78909c; box-shadow: 0 6px 14px rgba(0,0,0,0.12); }
+
+/* --- GAME OVERLAYS --- */
+.game-over-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.overlay-win { background: linear-gradient(135deg, rgba(46, 204, 113, 0.95), rgba(39, 174, 96, 0.98)); color: white; }
+.overlay-loss { background: linear-gradient(135deg, rgba(192, 57, 43, 0.95), rgba(150, 40, 27, 0.98)); color: white; }
+.result-emoji { font-size: 5em; margin-bottom: 10px; display: block; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2)); }
+.result-title { font-size: 3em; font-weight: 900; text-transform: uppercase; margin: 0; letter-spacing: 2px; text-shadow: 2px 2px 0 rgba(0,0,0,0.1); }
+.result-subtitle { font-size: 1.2em; opacity: 0.9; margin-bottom: 40px; font-weight: 300; }
+.btn-result { padding: 15px 30px; border-radius: 50px; font-size: 1.2em; font-weight: bold; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.2); transition: transform 0.2s; margin: 10px; display: inline-block; }
+.btn-result:hover { transform: scale(1.05); }
+.btn-rematch { background: white; color: #333; }
+.btn-exit { background: rgba(0,0,0,0.2); color: white; border: 2px solid rgba(255,255,255,0.4); }
+@keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+/* --- STILE PER IL PAREGGIO --- */
+.game-over-overlay.draw {
+    background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%); /* Blu Notte / Grigio */
+    color: #ecf0f1;
+}
+/* Opzionale: se vuoi un bordo specifico per i bottoni nel pareggio */
+.game-over-overlay.draw .btn-rematch {
+    background-color: #95a5a6;
+    color: white;
+    border: 2px solid #7f8c8d;
 }
 
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding-bottom: 80px;
+
+/* --- INPUTS & VISUALS --- */
+select, input[type="text"], textarea { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #f0f2f5; background: #f8f9fa; font-size: 16px; font-weight: 600; color: #333; appearance: none; text-align: center; transition: all 0.5s ease; }
+select#formato { transition: background-color 0.4s ease; font-weight: 800; color: #444; }
+select:focus, input[type="text"]:focus, textarea:focus { border-color: #2196F3; outline: none; background: #fff; }
+
+
+
+
+/* --- Result States (Selected - Buttons) --- */
+#opt_miss:checked + label { background: #f8f9fa; border-color: #bfc0c0; color: #555; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+#opt_miss:checked + label .result-icon { opacity: 1; transform: scale(1.1); }
+#opt_bordo:checked + label { background: #fff3e0; border-color: #ff9800; color: #ef6c00; box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25); }
+#opt_bordo:checked + label .result-icon { opacity: 1; transform: scale(1.15); }
+#opt_centro:checked + label { background: linear-gradient(180deg, #e8f5e9, #c8e6c9); border-color: #2ecc71; color: #1b5e20; box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4); }
+#opt_centro:checked + label .result-icon { opacity: 1; transform: scale(1.15); }
+
+/* --- History & Positions --- */
+.table-field-container { background: #f8f9fa; padding: 10px; border-radius: 15px; border: 2px solid #ddd; box-shadow: inset 0 0 5px rgba(0,0,0,0.1); position: relative; overflow: hidden; width: 100%; }
+.positions-row { display: flex; gap: 8px; justify-content: space-between; position: relative; z-index: 2; width: 100%; }
+.positions-row input[type="radio"] { display: none; }
+.pos-pad { flex: 1; padding: 12px 5px; background: #fff; border: 2px solid #eee; border-radius: 10px; text-align: center; cursor: pointer; font-weight: 700; color: #555; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.8em; }
+.pos-icon-big { font-size: 1.5em; margin-bottom: 2px; display: block; }
+#pos_sinistra:checked + .pos-pad, #pos_centrale:checked + .pos-pad, #pos_destra:checked + .pos-pad { background: #3498db; color: white; border-color: #3498db; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4); transform: translateY(-2px); }
+
+.history-section { margin-top: 30px; }
+.history-list { list-style: none; padding: 0; }
+.history-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid #ccc; position: relative; overflow: hidden; }
+.border-miss { border-left-color: #95a5a6; }
+.border-bordo { border-left-color: #ff9800; }
+.border-centro { border-left-color: #2ecc71; }
+.h-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.h-result { font-weight: 900; font-size: 1em; text-transform: uppercase; letter-spacing: 0.5px; }
+.h-time { font-size: 0.75em; color: #aaa; }
+.h-detail { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.tag { font-size: 0.7em; padding: 3px 8px; border-radius: 6px; background: #f0f2f5; color: #555; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.tag-imp { background: #e3f2fd; color: #1565C0; }
+.btn-del-history { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #e74c3c; font-size: 1.2em; cursor: pointer; opacity: 0.5; }
+
+
+/* ========================== ANIMAZIONI VENTO E MURO (Per i pulsanti risultato) ========================== */
+.mini-weather-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; z-index: 1; }
+label.animate-miss-trigger .mini-weather-box { opacity: 1; }
+.mini-wind { position: absolute; height: 2px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent); left: -100%; border-radius: 50%; filter: drop-shadow(0 0 2px white); }
+.mw1 { top: 35%; width: 60%; } .mw2 { top: 65%; width: 80%; }
+.mini-leaf { position: absolute; font-size: 1.2em; opacity: 0.9; left: -50%; }
+.lf1 { top: 25%; } .lf2 { top: 60%; font-size: 1em; }
+
+label.animate-miss-trigger .mini-wind, label.animate-miss-trigger .mini-leaf { animation: miniFlyBy 0.35s cubic-bezier(0.2, 0.6, 0.3, 1) forwards; }
+@keyframes miniFlyBy { 0% { left: -50%; opacity: 0; } 10% { opacity: 1; } 100% { left: 200%; opacity: 0; transform: rotate(180deg); } }
+
+.animating-submit { pointer-events: none; cursor: wait; }
+@keyframes miss-blown-away { 0% { transform: scale(1) translateX(0); opacity: 1; } 20% { transform: scale(0.95) translateX(-5px) rotate(-2deg); border-color: #bdc3c7; } 100% { transform: translateX(120px) rotate(15deg) skewX(-20deg) scale(0.9); opacity: 0; filter: blur(4px); } }
+.animate-miss-trigger { animation: miss-blown-away 0.35s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards !important; background: #f4f6f7 !important; box-shadow: inset 0 0 10px rgba(0,0,0,0.05) !important; z-index: 100; white-space: nowrap; }
+
+.bordo-wall { position: relative; overflow: hidden; }
+.brick-wall { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0.15) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.15) 2px, transparent 2px), linear-gradient(180deg, #d0831e, #e87a1f); background-size: 22px 14px, 22px 14px, cover; opacity: 0; transform: scale(1.2); z-index: 1; }
+.bordo-wall .content { position: relative; z-index: 2; }
+@keyframes wall-impact { 0% { transform: translate(0,0) scale(1); } 15% { transform: translate(-3px, 2px) scale(1.05); } 30% { transform: translate(3px, -2px) scale(1.05); } 45% { transform: translate(-2px, 1px); } 60% { transform: translate(2px, -1px); } 100% { transform: translate(0,0) scale(1); } }
+@keyframes brick-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0.85; } }
+.animate-bordo-trigger { animation: wall-impact 0.35s ease-in-out forwards !important; }
+.animate-bordo-trigger .brick-wall { animation: brick-flash 0.35s ease-out forwards; }
+
+
+/* =========================================
+   OVERLAY VITTORIA / SCONFITTA (NUOVO)
+   ========================================= */
+
+.game-over-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    animation: fadeIn 0.5s ease-out forwards;
 }
 
-h1 {
+.game-over-content {
     text-align: center;
-    color: #2c3e50;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    padding: 30px 20px;
+    border-radius: 30px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0, 0, 0, 0.6); /* Sfondo scuro per far risaltare il testo */
+    animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
-/* Common Button Styles */
-.btn {
+/* --- COLORI DI SFONDO (SI APPLICANO ALL'OVERLAY) --- */
+
+/* VITTORIA STANDARD */
+.overlay-win { 
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.9), rgba(20, 40, 20, 0.95)); 
+}
+.overlay-win .result-title { color: #2ecc71; text-shadow: 0 0 15px rgba(46, 204, 113, 0.4); }
+.overlay-win .result-cups { color: #a5d6a7; }
+
+/* SCONFITTA */
+.overlay-loss { 
+    background: linear-gradient(135deg, rgba(192, 57, 43, 0.9), rgba(40, 10, 10, 0.95)); 
+}
+.overlay-loss .result-title { color: #e74c3c; text-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
+.overlay-loss .result-cups { color: #ef9a9a; }
+
+/* PAREGGIO */
+.overlay-draw { 
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.9), rgba(44, 62, 80, 0.95)); 
+}
+.overlay-draw .result-title { color: #3498db; }
+.overlay-draw .result-cups { color: #90caf9; }
+
+
+/* --- SPECIALE: VITTORIA ASSICURATA (Effetto Oro) --- */
+.special-win {
+    background: radial-gradient(circle, rgba(60, 50, 20, 0.95) 0%, rgba(10, 10, 10, 0.98) 100%);
+}
+.special-win .game-over-content {
+    border: 2px solid #fff59d;
+    box-shadow: 0 0 50px rgba(255, 245, 157, 0.2);
+    background: linear-gradient(145deg, #1a1a1a, #000000);
+    animation: pulseGold 2s infinite;
+}
+.special-win .result-title {
+    color: #fff59d;
+    font-size: 2.2rem; /* Font leggermente più piccolo per i titoli lunghi */
+    text-shadow: 0 0 25px rgba(255, 245, 157, 0.6);
+}
+.special-win .result-cups { color: #fff9c4; }
+
+
+/* --- TESTI E CONTENUTI --- */
+
+.result-title {
+    font-size: 2.8rem;
+    font-weight: 900;
+    margin: 0;
+    text-transform: uppercase;
+    line-height: 1.1;
+}
+
+.result-cups {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 5px 0;
+}
+
+.result-message {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 20px;
+    line-height: 1.4;
+    font-weight: 400;
+    padding: 0 10px;
+}
+
+/* --- BOTTONI FINALI --- */
+.btn-endgame {
+    width: 100%;
+    padding: 15px;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 800;
     text-decoration: none;
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-weight: bold;
+    text-transform: uppercase;
+    border: none;
     cursor: pointer;
     transition: transform 0.2s;
-    border: none;
-    display: inline-block;
+    margin-bottom: 8px;
+    display: block;
 }
 
-.btn:hover { transform: translateY(-2px); }
+.btn-rematch { 
+    background: #fff; 
+    color: #333; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+.btn-rematch:hover { transform: scale(1.02); }
+
+.btn-exit { 
+    background: rgba(255,255,255,0.1); 
+    color: white; 
+    border: 1px solid rgba(255,255,255,0.3); 
+    font-size: 0.9rem;
+}
+.btn-exit:hover { background: rgba(255,255,255,0.2); }
+
+
+/* --- ANIMAZIONI --- */
+@keyframes pulseGold {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); box-shadow: 0 0 60px rgba(255, 245, 157, 0.4); }
+    100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes popIn {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+
+
+/* =========================================
+   STILI DINAMICI BEVANDE
+   ========================================= */
+
+/* ACQUA (Azzurrino) */
+.drink-water {
+    background-color: #e1f5fe !important;
+    color: #0277bd !important;
+    border-color: #81d4fa !important;
+}
+
+/* BIRRA (Giallo Oro) */
+.drink-beer {
+    background-color: #fff176 !important;
+    color: #f57f17 !important;
+    border-color: #fbc02d !important;
+}
+
+/* SPRITZ (Arancione Rosso intenso) */
+.drink-spritz {
+    background: linear-gradient(135deg, #ffab91 0%, #ff7043 100%) !important;
+    color: #fff !important;
+    border-color: #ff5722 !important;
+    font-weight: bold;
+}
+
+/* VINO (Rosso Scuro / Bordeaux) */
+.drink-wine {
+    background-color: #880e4f !important; /* Bordeaux */
+    color: #fff !important;
+    border-color: #ad1457 !important;
+}
+
+/* JAGERBOMB (Marrone scuro/Nero) */
+.drink-jager {
+    background: linear-gradient(135deg, #3e2723 0%, #1a1a1a 100%) !important;
+    color: #fff !important;
+    border-color: #5d4037 !important;
+}
+
+/* COCA COLA (Nero) */
+.drink-coke {
+    background-color: #121212 !important;
+    color: #fff !important;
+    border-color: #000 !important;
+}
+
+/* GIN LEMON (Giallo Limone / Lime) */
+.drink-ginlemon {
+    background-color: #f4ff81 !important;
+    color: #827717 !important;
+    border-color: #c6ff00 !important;
+}
+
+/* GIN TONIC (Ghiaccio / Bianco Bluastro) */
+.drink-gintonic {
+    background-color: #e0f7fa !important;
+    color: #006064 !important;
+    border-color: #b2ebf2 !important;
+}
