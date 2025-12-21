@@ -1,0 +1,382 @@
+/* =========================================
+   HEADER AVATAR E TITOLO (NUOVO STILE FLAT)
+   ========================================= */
+
+.header-title-wrapper {
+    display: flex;
+    align-items: center;      /* Centra verticalmente gli assi */
+    justify-content: center;  /* Centra orizzontalmente */
+    gap: 15px;                /* Spazio tra icona e testo */
+    margin-bottom: 20px;
+}
+
+.header-avatar-large {
+    /* Dimensioni fisse */
+    width: 60px;
+    height: 60px;
+    
+    /* Stile "App Icon" pulito */
+    background: #ffffff;      /* Bianco puro */
+    border-radius: 16px;      /* Angoli arrotondati (non cerchio) */
+    
+    /* Ombra molto leggera e morbida, non "spessa" */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    
+    /* Niente bordo o bordi sottilissimi */
+    border: 1px solid rgba(0,0,0,0.05); 
+
+    /* Allineamento interno dell'emoji */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Dimensione e altezza riga per centratura ottica */
+    font-size: 2.2em;
+    line-height: 1; 
+    padding-bottom: 2px; /* Micro-aggiustamento per le emoji che spesso "salgono" */
+}
+
+/* Titolo */
+.stats-header h1 {
+    margin: 0 !important;     /* Rimuove margini esterni */
+    line-height: 1.2;         /* Altezza riga standard per il testo */
+    color: #1e293b;
+    text-align: left;         /* Il testo parte da sinistra rispetto al flex container */
+}
+
+/* Responsive: su mobile riduciamo leggermente */
+@media (max-width: 768px) {
+    .header-avatar-large {
+        width: 50px;
+        height: 50px;
+        font-size: 1.8em;
+        border-radius: 12px;
+    }
+}
+
+/* Header */
+.stats-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.stats-header h1 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 2.5rem;
+}
+
+.btn-back {
+    text-decoration: none;
+    color: #7f8c8d;
+    font-weight: 600;
+    transition: color 0.3s;
+}
+
+.btn-back:hover {
+    color: #2c3e50;
+}
+
+/* Widgets in alto */
+.top-widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.widget {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    
+    /* --- AGGIUNTA FONDAMENTALE PER CENTRATURA --- */
+    display: flex;           /* Attiva Flexbox */
+    flex-direction: column;  /* Mette gli elementi uno sotto l'altro */
+    justify-content: center; /* Centra VERTICALMENTE il contenuto */
+    align-items: center;     /* Centra ORIZZONTALMENTE il contenuto */
+    height: 100%;            /* Assicura che usi tutta l'altezza disponibile */
+}
+
+.widget span {
+    display: block;
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.widget strong {
+    display: block;
+    font-size: 2em;
+    font-weight: 700;
+}
+
+/* Griglia Grafici: Forza 2 colonne per riga su desktop */
+.stats-grid {
+    display: grid;
+    /* Cambiato da auto-fit a 1fr 1fr per bloccare il numero di colonne a 2 */
+    grid-template-columns: 1fr 1fr; 
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+
+
+
+/* Header */
+.stats-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.stats-header h1 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 2.5rem;
+}
+
+.btn-back {
+    text-decoration: none;
+    color: #7f8c8d;
+    font-weight: 600;
+    transition: color 0.3s;
+}
+
+.btn-back:hover {
+    color: #2c3e50;
+}
+
+/* Widgets in alto */
+.top-widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+
+.widget span {
+    display: block;
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.widget strong {
+    display: block;
+    font-size: 2em;
+    font-weight: 700;
+}
+
+/* Griglia Grafici: Forza 2 colonne per riga su desktop */
+.stats-grid {
+    display: grid;
+    /* Cambiato da auto-fit a 1fr 1fr per bloccare il numero di colonne a 2 */
+    grid-template-columns: 1fr 1fr; 
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* Ombra morbida */
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.chart-card h3 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    border-bottom: 2px solid #f1f1f1;
+    padding-bottom: 10px;
+}
+
+.chart-note {
+    text-align: center;
+    font-size: 0.85em;
+    color: #7f8c8d;
+    margin-top: 15px;
+    font-style: italic;
+}
+
+/* Canvas Responsivo */
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 300px; /* Altezza massima controllata */
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr; /* Un solo grafico per riga */
+    }
+    
+    .stats-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .chart-card {
+        min-height: auto; /* Evita spazi vuoti eccessivi su mobile */
+    }
+
+    .chart-wrapper, .pie-chart-container {
+        height: 250px; /* Riduciamo leggermente l'altezza per schermi piccoli */
+    }
+}
+
+
+/* --- STILE PER I GRAFICI A TORTA (Vale per entrambi) --- */
+.pie-chart-container {
+    position: relative;
+    height: 300px;   /* Altezza fissa ottimale per le torte */
+    width: 100%;
+    display: flex;
+    justify-content: center; /* Centra orizzontalmente */
+    margin-bottom: 10px;
+}
+
+.pie-chart-container canvas {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto !important; /* Evita lo stiramento */
+    margin: 0 auto;
+}
+
+
+/* static/css/grafici/grafici_home.css */
+
+/* ... (mantieni il resto del codice) ... */
+
+.multi-hit-list {
+    text-align: left;
+    margin-top: 10px;
+    font-size: 0.95rem; 
+    width: 100%; /* Occupa tutta la larghezza del widget */
+}
+
+.multi-hit-item {
+    display: flex;
+    justify-content: space-between; /* Spinge il nome a sx e il numero a dx */
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 0; /* Aumenta lo spazio verticale tra le righe */
+}
+
+.multi-hit-item span:first-child {
+    margin-right: 15px; /* Crea lo spazio forzato dopo il nome (es. "Doppi ") */
+    text-transform: capitalize;
+}
+
+.multi-hit-count {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #2ecc71; /* Un tocco di verde per far risaltare il record */
+}
+
+
+/* Gestione universale per i contenitori dei grafici (Barre e Linee) */
+.chart-wrapper {
+    position: relative;
+    height: 300px; /* Altezza fissa per coerenza visiva */
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* Separatore per le sezioni Record e Trend */
+.bottom-widgets-container {
+    margin-top: 50px;
+    border-top: 2px solid #ecf0f1;
+    padding-top: 30px;
+}
+
+/* Titolo delle sezioni (Record e Speciali / Analisi e Trend) */
+.section-title {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 30px;
+    font-size: 2rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* Griglia Grafici: Forza 2 colonne per riga su desktop */
+.stats-grid {
+    display: grid;
+    /* Cambiato da auto-fit a 1fr 1fr per bloccare il numero di colonne a 2 */
+    grid-template-columns: 1fr 1fr; 
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+/* --- STILE PULSANTI DI NAVIGAZIONE FINALI --- */
+
+/* Contenitore che separa i grafici dai pulsanti in fondo */
+.bottom-navigation {
+    margin-top: 50px;
+    padding: 40px 0 60px 0; /* Spazio extra in fondo alla pagina */
+    text-align: center;
+    border-top: 2px solid #ecf0f1;
+}
+
+/* Flexbox per affiancare i pulsanti con spazio */
+.nav-buttons-container {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap; /* Fondamentale per il responsive su mobile */
+}
+
+/* Stile specifico per i pulsanti extra */
+.btn-nav.extra {
+    display: inline-block;
+    padding: 18px 35px;
+    /* Gradiente coordinato con i widget superiori */
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: white;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.1);
+    min-width: 220px; /* Assicura che i pulsanti abbiano la stessa larghezza */
+}
+
+/* Effetti al passaggio del mouse (hover) */
+.btn-nav.extra:hover {
+    transform: translateY(-4px); /* Leggero sollevamento */
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    filter: brightness(1.2);
+    color: #fff;
+}
+
+/* Adattamento per dispositivi mobili */
+@media (max-width: 600px) {
+    .nav-buttons-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .btn-nav.extra {
+        width: 90%; /* Pulsanti quasi a tutta larghezza su smartphone */
+        padding: 15px 20px;
+    }
+}

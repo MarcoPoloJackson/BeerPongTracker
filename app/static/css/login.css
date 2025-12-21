@@ -1,0 +1,144 @@
+/* =========================================
+   1. LAYOUT WHITE MODE
+   ========================================= */
+body.login-page-white { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+    margin: 0; padding: 20px; color: #333;
+    min-height: 100vh; display: flex; justify-content: center; align-items: flex-start;
+}
+
+.login-container-white { 
+    width: 100%; max-width: 850px; margin-top: 40px;
+    background: rgba(255, 255, 255, 0.8); 
+    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 25px; padding: 40px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+}
+
+.login-header h1 {
+    text-align: center; color: #2c3e50; margin: 0 0 30px 0;
+    font-weight: 800; font-size: 2.2em; letter-spacing: 1px;
+}
+
+/* =========================================
+   2. INPUTS ARROTONDATI CON GHOST TEXT
+   ========================================= */
+.white-input-group { display: flex; width: 100%; align-items: stretch; gap: 10px; }
+
+.input-wrapper-rounded { 
+    background: white; border-radius: 50px; border: 1px solid #e0e0e0; 
+    transition: all 0.2s; display: flex; align-items: center; 
+    position: relative; overflow: hidden;
+}
+
+.input-wrapper-rounded:focus-within { 
+    border-color: #3498db; box-shadow: 0 0 10px rgba(52, 152, 219, 0.15); 
+}
+
+.rounded-input { 
+    border: none; padding: 12px 25px; font-size: 1.05em; outline: none; 
+    width: 100%; height: 100%; font-family: inherit;
+    background: transparent; /* FONDAMENTALE per vedere il ghost sotto */
+}
+
+/* LOGICA GHOST TEXT */
+.name-container { position: relative; }
+
+.ghost-text {
+    position: absolute; top: 0; left: 0;
+    color: #999 !important; /* Colore più visibile */
+    pointer-events: none; z-index: 1;
+    font-weight: 600; 
+}
+
+.real-text {
+    position: relative; z-index: 2; color: #333; font-weight: 600;
+}
+
+/* =========================================
+   3. BOTTONI
+   ========================================= */
+.main-action-btn-white { 
+    background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; 
+    border: none; padding: 0 30px; border-radius: 40px; font-weight: bold; 
+    font-size: 1.1em; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.main-action-btn-white:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3); }
+.main-action-btn-white.create-mode { background: linear-gradient(135deg, #3498db, #2980b9); }
+
+.mode-toggle-btn-white { 
+    background: white; border: 2px solid #3498db; color: #3498db; 
+    min-width: 48px; height: 48px; border-radius: 50%; font-size: 1.6em; 
+    cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center;
+}
+.mode-toggle-btn-white:hover { background: #f0faff; }
+.mode-toggle-btn-white.create-mode { 
+    background: #3498db; color: white; transform: rotate(45deg); border-color: #3498db;
+}
+
+/* =========================================
+   4. GRIGLIA GIOCATORI (CON AVATAR)
+   ========================================= */
+.divider-white { border-bottom: 1px solid #f0f0f0; margin: 35px 0; }
+.section-title-white { 
+    text-align: left; color: #34495e; font-size: 1.1em; 
+    margin-bottom: 20px; font-weight: 700; padding-left: 5px;
+    text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;
+}
+
+.players-grid-white { 
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; 
+}
+
+.player-card-white { 
+    background: white; border-radius: 16px; padding: 10px 15px; 
+    display: flex; justify-content: space-between; align-items: center; 
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid rgba(0,0,0,0.04); box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.player-card-white:hover { 
+    transform: translateY(-4px); box-shadow: 0 12px 20px rgba(0,0,0,0.08); 
+    border-color: rgba(52, 152, 219, 0.3);
+}
+
+.card-left-section { display: flex; align-items: center; gap: 15px; flex-grow: 1; }
+
+.player-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg, #3498db, #2980b9); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1.4em; box-shadow: 0 4px 8px rgba(52, 152, 219, 0.25);
+    flex-shrink: 0; text-transform: uppercase;
+}
+
+.player-card-white:nth-child(3n+1) .player-avatar { background: linear-gradient(135deg, #3498db, #2980b9); }
+.player-card-white:nth-child(3n+2) .player-avatar { background: linear-gradient(135deg, #e67e22, #d35400); box-shadow: 0 4px 8px rgba(230, 126, 34, 0.25); }
+.player-card-white:nth-child(3n+3) .player-avatar { background: linear-gradient(135deg, #9b59b6, #8e44ad); box-shadow: 0 4px 8px rgba(155, 89, 182, 0.25); }
+
+.player-name { font-weight: 700; color: #2c3e50; font-size: 1.05em; }
+
+.btn-delete-white { 
+    background: transparent; color: #e0e0e0; border: none; width: 32px; height: 32px; 
+    border-radius: 50%; cursor: pointer; font-size: 1.4em; display: flex; align-items: center; justify-content: center;
+}
+.btn-delete-white:hover { background: #ffebee; color: #e74c3c; transform: rotate(90deg); }
+.empty-state-white { grid-column: 1 / -1; text-align: center; color: #aaa; padding: 30px; font-style: italic; }
+
+/* =========================================
+   5. MODALE & UTILITY
+   ========================================= */
+.flash-container { margin-bottom: 20px; }
+.flash-message { padding: 12px; border-radius: 10px; text-align: center; margin-bottom: 10px; font-weight: 600;}
+.flash-message.error { background: #ffcdd2; color: #b71c1c; }
+.flash-message.warning { background: #fff9c4; color: #f57f17; }
+
+.modal-overlay-white { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); z-index: 2000; justify-content: center; align-items: center; }
+.modal-content-white { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
+.close-modal { position: absolute; top: 15px; right: 15px; font-size: 1.5em; cursor: pointer; color: #999; }
+.modal-title-danger { color: #c0392b; margin-top: 0; }
+.modal-input { margin: 20px 0; }
+.modal-btn-danger { width: 100%; padding: 12px; border-radius: 40px; border: none; font-weight: bold; cursor: pointer; color: white; background: #e74c3c; transition: 0.2s;}
+.modal-btn-danger:hover { background: #c0392b; }

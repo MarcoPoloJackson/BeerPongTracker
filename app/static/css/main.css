@@ -2,6 +2,44 @@
    MAIN.CSS - Stile Globale & Gioco
    ========================================= */
 
+/* 1. Blocca animazioni e transizioni finché la classe .preload esiste */
+body.preload * {
+    animation-duration: 0s !important;
+    -webkit-animation-duration: 0s !important;
+    transition: none !important; /* Cambiato da background-color... a 'none' per sicurezza totale */
+}
+
+/* 2. Forza background e scrollbar */
+html {
+    background-color: #f0f2f5; /* <--- AGGIUNTO QUESTO: Stesso colore del body */
+    overflow-y: scroll; 
+}
+
+/* --- BASE & TYPOGRAPHY --- */
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: #f0f2f5; 
+    margin: 0; 
+    padding: 10px; 
+    color: #333; 
+    /* Opzionale: previene flash bianco su iOS */
+    -webkit-tap-highlight-color: transparent;
+}
+
+
+/* 1. Blocca animazioni e transizioni finché la classe .preload esiste */
+body.preload * {
+    animation-duration: 0s !important;
+    -webkit-animation-duration: 0s !important;
+    transition: background-color 0s, opacity 0s, color 0s, width 0s, height 0s, padding 0s, margin 0s, transform 0s !important;
+}
+
+/* 2. Forza la scrollbar per evitare il salto laterale */
+html {
+    overflow-y: scroll; 
+}
+
+
 /* --- BASE & TYPOGRAPHY --- */
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 10px; color: #333; }
 .container { max-width: 500px; margin: 0 auto; padding-bottom: 80px; }
@@ -126,7 +164,14 @@ label.animate-miss-trigger .mini-wind, label.animate-miss-trigger .mini-leaf { a
 .bordo-wall { position: relative; overflow: hidden; }
 .brick-wall { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0.15) 2px, transparent 2px), linear-gradient(rgba(255,255,255,0.15) 2px, transparent 2px), linear-gradient(180deg, #d0831e, #e87a1f); background-size: 22px 14px, 22px 14px, cover; opacity: 0; transform: scale(1.2); z-index: 1; }
 .bordo-wall .content { position: relative; z-index: 2; }
-@keyframes wall-impact { 0% { transform: translate(0,0) scale(1); } 15% { transform: translate(-3px, 2px) scale(1.05); } 30% { transform: translate(3px, -2px) scale(1.05); } 45% { transform: translate(-2px, 1px); } 60% { transform: translate(2px, -1px); } 100% { transform: translate(0,0) scale(1); } }
+@keyframes wall-impact { 
+    0% { transform: scale(1); } 
+    20% { transform: scale(0.90) translateY(2px); } /* Impatto secco: si schiaccia */
+    45% { transform: scale(1.05) translateY(-1px); } /* Rimbalzo elastico */
+    65% { transform: scale(0.98) translateY(1px); } /* Assestamento */
+    85% { transform: scale(1.01); } 
+    100% { transform: scale(1); } 
+}
 @keyframes brick-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0.85; } }
 .animate-bordo-trigger { animation: wall-impact 0.35s ease-in-out forwards !important; }
 .animate-bordo-trigger .brick-wall { animation: brick-flash 0.35s ease-out forwards; }
@@ -340,4 +385,251 @@ label.animate-miss-trigger .mini-wind, label.animate-miss-trigger .mini-leaf { a
     background-color: #e0f7fa !important;
     color: #006064 !important;
     border-color: #b2ebf2 !important;
+}
+
+
+
+/* =========================================
+   STILI PULSANTE TEAM / VISTA DOPPIA
+   ========================================= */
+
+.info-team { 
+    cursor: pointer; 
+    transition: all 0.2s ease-in-out; 
+    border-left: 5px solid #ccc;
+}
+
+.split-badge { 
+    background: rgba(0,0,0,0.05); 
+    padding: 5px 10px; 
+    border-radius: 8px; 
+    font-size: 0.8em; 
+    color: #555; 
+    transition: all 0.2s;
+}
+
+/* Stato Normale (Abilitato) */
+.normal-card { 
+    border-left-color: #2196F3; 
+    background-color: #f0faff; 
+}
+.normal-card:hover { 
+    transform: scale(1.02); 
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1); 
+}
+
+/* Badge Attivo */
+.active-green { 
+    background: #2ecc71; 
+    color: white; 
+    font-weight: bold; 
+    box-shadow: 0 2px 5px rgba(46, 204, 113, 0.3); 
+}
+
+/* Stato Disabilitato */
+.disabled-card { 
+    background-color: #f9f9f9; 
+    opacity: 0.8; 
+    cursor: not-allowed; 
+    border-left-color: #999; 
+}
+
+/* Split View dentro Iframe (Badge attivo) */
+.split-active-card { 
+    background-color: #e8f5e9; 
+    border-left-color: #2ecc71; 
+    box-shadow: inset 0 0 10px rgba(46, 204, 113, 0.1); 
+}
+.split-active-card:hover { 
+    background-color: #d4edda; 
+    transform: translateY(-2px); 
+}
+.split-badge.active { 
+    background: #2ecc71; 
+    color: white; 
+    font-weight: bold; 
+    box-shadow: 0 2px 5px rgba(46, 204, 113, 0.3); 
+}
+
+/* Animazione Errore (Tremolio) */
+@keyframes shake {
+    0% { transform: translateX(0); } 
+    25% { transform: translateX(-5px); } 
+    50% { transform: translateX(5px); } 
+    75% { transform: translateX(-5px); } 
+    100% { transform: translateX(0); }
+}
+
+
+/* ==========================================
+   DASHBOARD HEADER (Restyling User Bar)
+   ========================================== */
+
+.dashboard-header {
+    background: white;
+    border-radius: 20px;
+    padding: 15px 25px;
+    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.02);
+    position: relative;
+    z-index: 10;
+}
+
+/* --- LATO SINISTRO: IDENTITÀ --- */
+.player-identity {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.identity-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2c3e50, #4ca1af); /* Gradiente serio/profondo */
+    color: white;
+    font-size: 1.5em;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(44, 62, 80, 0.3);
+    border: 3px solid #f0f2f5; /* Anello esterno */
+}
+
+.identity-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.id-label {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.id-name {
+    font-size: 1.2em;
+    font-weight: 900;
+    color: #1e293b;
+    line-height: 1.1;
+}
+
+/* --- LATO DESTRO: CONTROLLI --- */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* TOGGLE SWITCH PERSONALIZZATO */
+.toggle-form { margin: 0; }
+
+.edit-toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    background: #f8fafc;
+    padding: 8px 15px;
+    border-radius: 50px;
+    border: 1px solid #e2e8f0;
+    transition: 0.2s;
+}
+
+.edit-toggle-wrapper:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.edit-toggle-wrapper input {
+    display: none; /* Nascondi checkbox nativa */
+}
+
+.toggle-visual {
+    width: 40px;
+    height: 22px;
+    background: #cbd5e1;
+    border-radius: 20px;
+    position: relative;
+    transition: 0.3s ease;
+}
+
+.toggle-knob {
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Stato Checked (ON) */
+.edit-toggle-wrapper input:checked + .toggle-visual {
+    background: #22c55e; /* Verde */
+}
+
+.edit-toggle-wrapper input:checked + .toggle-visual .toggle-knob {
+    transform: translateX(18px);
+}
+
+.toggle-label-text {
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #64748b;
+    user-select: none;
+}
+
+.edit-toggle-wrapper input:checked ~ .toggle-label-text {
+    color: #15803d; /* Verde scuro testo */
+}
+
+/* LOGOUT BUTTON */
+.btn-logout {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 2px solid #fee2e2;
+    background: #fff1f2;
+    color: #e11d48;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.9em;
+    transition: all 0.2s;
+}
+
+.btn-logout:hover {
+    background: #e11d48;
+    color: white;
+    border-color: #e11d48;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+}
+
+.logout-icon { font-size: 1.1em; line-height: 1;}
+
+/* Responsive per mobile: impila se necessario */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .header-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .toggle-label-text {
+        font-size: 0.75em;
+    }
 }

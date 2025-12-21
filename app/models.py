@@ -2,6 +2,7 @@ import os
 import json
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash # <--- AGGIUNGI QUESTO IN CIMA
 from sqlalchemy import text
 
 # Inizializza SQLAlchemy
@@ -32,6 +33,7 @@ CUP_DEFINITIONS = {
 def init_db(app):
     """
     Collega il database all'app Flask e crea le tabelle se mancano.
+    Crea anche gli ADMIN automatici.
     """
     basedir = os.path.abspath(os.path.dirname(__file__))
     project_root = os.path.dirname(basedir)
@@ -44,6 +46,25 @@ def init_db(app):
 
     with app.app_context():
         db.create_all()
+
+        # --- SEZIONE AGGIUNTA: CREAZIONE ADMIN ---
+        admin_names = ['Admin1', 'Admin2', 'Admin3', 'Admin4']
+        # La password di default per tutti è "admin" (puoi cambiarla qui sotto)
+        default_password = "Teutoburgo9dc" 
+        
+        created = False
+        for name in admin_names:
+            # Controlla se esiste già
+            if not Player.query.filter_by(name=name).first():
+                print(f"Creating Admin: {name}")
+                hashed_pw = generate_password_hash(default_password)
+                # Creiamo il player con is_admin=True
+                new_admin = Player(name=name, password=hashed_pw, is_admin=True)
+                db.session.add(new_admin)
+                created = True
+        
+        if created:
+            db.session.commit()
 
 # ==========================================
 #              MODELLI DATABASE
@@ -58,10 +79,8 @@ class Player(db.Model):
     password = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     edit = db.Column(db.Boolean, default=False) 
-
-    # Relazione: permette di ottenere tutti i tiri di un giocatore con player.records
     records = db.relationship('PlayerRecord', backref='player', lazy=True)
-
+    icon = db.Column(db.String(10), default=None)
 
 class ActiveMatch(db.Model):
     """
@@ -115,33 +134,49 @@ class ActiveMatch(db.Model):
 
 class PlayerRecord(db.Model):
     """
-    Tabella dei Tiri (Records).
-    Sostituisce i vecchi file _tracker.db multipli.
+    Tabella dei Tiri (Records) Ottimizzata per Analisi.
     """
     __tablename__ = 'records'
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # Chiavi Esterne (Foreign Keys)
+    # --- CHIAVI ESTERNE ---
     match_id = db.Column(db.Integer, db.ForeignKey('active_matches.id'), nullable=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
+    
+    # [NUOVO] Contesto della squadra e avversari (Salviamo gli ID per le statistiche)
+    teammate_id = db.Column(db.Integer, nullable=True) # ID del compagno
+    opponent1_id = db.Column(db.Integer, nullable=True) # ID avversario 1
+    opponent2_id = db.Column(db.Integer, nullable=True) # ID avversario 2
 
-    # Dati del tiro
+    # --- DATI TIRO ---
+    # [NUOVO] Numero progressivo del tiro per questo giocatore in questa partita (1°, 2°, 3°...)
+    shot_number = db.Column(db.Integer, default=1) 
+    
     miss = db.Column(db.String(10), default="No")
     bordo = db.Column(db.String(10), default="No")
     centro = db.Column(db.String(10), default="No")
     bicchiere_colpito = db.Column(db.String(255)) 
 
-    # Snapshot dello stato al momento del tiro
+    # Snapshot dello stato
     cups_own = db.Column(db.Integer, default=0)
     cups_opp = db.Column(db.Integer, default=0)
-    numero_bicchieri = db.Column(db.String(20), default="0")
+    # [RIMOSSO] numero_bicchieri (ridondante)
 
-    # Metadata
-    timestamp = db.Column(db.DateTime, default=datetime.now) # Sostituisce Data/Ora separati
+    # --- INFO PARTITA/TEMPO ---
+    # Timestamp completo (serve al DB per ordinare cronologicamente i tiri!)
+    timestamp = db.Column(db.DateTime, default=datetime.now) 
+    
+    # [NUOVO] Data e Ora separate come richiesto (Stringa per facilità di lettura)
+    match_date = db.Column(db.String(20)) # Es: "2023-10-25"
+    match_hour = db.Column(db.Integer)    # Es: 22 (solo l'ora, senza minuti)
+
+    # [NUOVO] Info contestuali extra
+    is_overtime = db.Column(db.Boolean, default=False) # Era redemption/overtime?
+    match_result = db.Column(db.String(10), nullable=True) # "Win" o "Loss" (aggiornato a fine partita)
+
+    # Metadata vari
     note = db.Column(db.Text)
-
-    # Info Extra
     tiro_salvezza = db.Column(db.String(10), default="No")
     bicchieri_multipli = db.Column(db.String(20), nullable=True)
     formato = db.Column(db.String(20))

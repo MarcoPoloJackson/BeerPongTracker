@@ -2,6 +2,18 @@
    TABLE.CSS - Stile Globale & Gioco
    ========================================= */
 
+html {
+    overflow-y: scroll; /* La barra c'è sempre, evita salti laterali */
+}
+
+/* BLOCCO TOTALE ANIMAZIONI QUANDO LA PAGINA CARICA */
+body.preload * {
+    animation-duration: 0s !important;
+    -webkit-animation-duration: 0s !important;
+    transition: none !important;
+}
+
+
 /* --- BASE & TYPOGRAPHY --- */
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 10px; color: #333; }
 .container { max-width: 500px; margin: 0 auto; padding-bottom: 80px; }
@@ -94,7 +106,24 @@ input[type="text"]:focus, textarea:focus { border-color: #2196F3; outline: none;
 
 .history-section { margin-top: 30px; }
 .history-list { list-style: none; padding: 0; }
-.history-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid #ccc; position: relative; overflow: hidden; }
+/* In table.css */
+
+/* BLOCCO EXTRA PER LA STORIA */
+/* Impedisce alle card di "volare" dentro quando la pagina carica */
+body.preload .history-card,
+body.preload .container {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important; /* Forza visibilità immediata, niente fade-in */
+}
+body.preload .history-card,
+body.preload .history-list {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+}
 .border-miss { border-left-color: #95a5a6; }
 .border-bordo { border-left-color: #ff9800; }
 .border-centro { border-left-color: #2ecc71; }
@@ -143,3 +172,4 @@ label.animate-miss-trigger .mini-wind, label.animate-miss-trigger .mini-leaf { a
 @keyframes brick-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0.85; } }
 .animate-bordo-trigger { animation: wall-impact 0.35s ease-in-out forwards !important; }
 .animate-bordo-trigger .brick-wall { animation: brick-flash 0.35s ease-out forwards; }
+

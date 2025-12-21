@@ -52,7 +52,7 @@
                 <div class="form-group">
                     <label>Bicchieri in Campo:</label>
                     <div id="t2-cups-container" class="cups-selector-grid">
-                        </div>
+                         </div>
                 </div>
             </div>
         </div>
@@ -76,7 +76,8 @@
         </div>
 
         <button type="submit" class="btn-save">💾 SALVA CONFIGURAZIONE</button>
-        <a href="{{ url_for('main.select_player') }}" class="btn-cancel">Annulla</a>
+        
+        <a href="{{ url_for('main.home') }}" class="btn-cancel">Annulla</a>
     </form>
 </div>
 
@@ -84,11 +85,11 @@
     // 1. Dati passati da Python a JS
     const cupDefinitions = {{ cup_definitions | tojson }};
     
-    // Stato attuale (per preselezionare quelli giusti al caricamento)
+    // Stato attuale dei bicchieri (liste salvate nel DB)
     const currentActiveT1 = {{ match.active_cups_t1_list | tojson }};
     const currentActiveT2 = {{ match.active_cups_t2_list | tojson }};
     
-    // Formato attuale salvato nel DB (per sapere se è cambiato o no)
+    // Formato attuale salvato nel DB
     const dbFormatT1 = "{{ match.format_target_for_t1 }}";
     const dbFormatT2 = "{{ match.format_target_for_t2 }}";
 
@@ -99,24 +100,22 @@
         const selectedFormat = document.getElementById(selectId).value;
         const container = document.getElementById(containerId);
         
-        container.innerHTML = ""; // Pulisce
+        container.innerHTML = ""; // Pulisce il contenitore
         
-        // Recupera la lista dei bicchieri per questo formato (es. ["1", "2", "3"])
+        // Recupera la lista dei bicchieri per questo formato
         const cupsList = cupDefinitions[selectedFormat] || [];
         
         // Determina quali devono essere spuntati
-        let cupsToheck = [];
+        let cupsToCheck = [];
         
-        // SE il formato selezionato è UGUALE a quello salvato nel DB,
-        // allora mostriamo la selezione reale attuale (quelli rimasti).
+        // Se il formato selezionato è UGUALE a quello nel DB, mostra quelli reali rimasti
         if ( (team === 't1' && selectedFormat === dbFormatT1) ) {
-            cupsToheck = currentActiveT1;
+            cupsToCheck = currentActiveT1;
         } else if ( (team === 't2' && selectedFormat === dbFormatT2) ) {
-            cupsToheck = currentActiveT2;
+            cupsToCheck = currentActiveT2;
         } else {
-            // SE il formato è DIVERSO (l'utente lo sta cambiando ora),
-            // li selezioniamo TUTTI di default (reset del tavolo).
-            cupsToheck = cupsList; 
+            // Se il formato è cambiato, resettali tutti (selezionali tutti)
+            cupsToCheck = cupsList; 
         }
 
         if (cupsList.length === 0) {
@@ -126,22 +125,19 @@
 
         // Crea le checkbox
         cupsList.forEach(cupName => {
-            // Wrapper visivo
             const label = document.createElement('label');
             label.className = 'cup-checkbox-item';
             
-            // Input reale (nascosto o visibile)
             const input = document.createElement('input');
             input.type = 'checkbox';
-            input.name = team + "_selected_cups"; // Fondamentale per il POST
+            input.name = team + "_selected_cups"; 
             input.value = cupName;
             
-            // Logica check
-            if (cupsToheck.includes(cupName)) {
+            // Se il bicchiere è nella lista attiva, mettiamo la spunta
+            if (cupsToCheck.includes(cupName)) {
                 input.checked = true;
             }
             
-            // Span per testo
             const span = document.createElement('span');
             span.className = 'cup-label-text';
             span.innerText = cupName;
@@ -155,8 +151,12 @@
     function toggleRedemptionFields() {
         const val = document.getElementById('statusSelect').value;
         const shotGroup = document.getElementById('redemption-shots-group');
-        if (val === 'redemption_t1' || val === 'redemption_t2') shotGroup.style.display = 'block';
-        else shotGroup.style.display = 'none';
+        // Mostra il campo tiri se siamo in redemption o overtime
+        if (val.includes('redemption') || val === 'overtime') {
+            shotGroup.style.display = 'block';
+        } else {
+            shotGroup.style.display = 'none';
+        }
     }
 
     // 3. Inizializzazione al caricamento

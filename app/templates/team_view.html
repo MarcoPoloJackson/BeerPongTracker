@@ -5,97 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Vista Squadra - Match #{{ match_id }}</title>
     <style>
-        :root {
-            --header-height: 60px;
-            --bg-dark: #2c3e50;
-            --accent-blue: #3498db;
-        }
-        body, html {
-            margin: 0; padding: 0; height: 100%;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-dark);
-            overflow: hidden; /* Blocca lo scroll principale */
-        }
-
-        /* Header moderno */
-        .split-header {
-            height: var(--header-height);
-            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            position: relative; z-index: 10;
-            border-bottom: 2px solid rgba(255,255,255,0.1);
+        :root { --header-height: 50px; --bg-dark: #2c3e50; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background-color: var(--bg-dark); overflow: hidden; }
+        
+        .split-header { 
+            height: var(--header-height); 
+            background: #34495e; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: bold; 
+            font-size: 1.1em; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); 
+            gap: 15px; /* Spazio tra i pulsanti */
         }
 
-        .split-title {
-            font-weight: 900;
-            font-size: 1.2em;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            display: flex; align-items: center; gap: 10px;
-        }
+        .split-container { display: flex; height: calc(100% - var(--header-height)); width: 100%; }
+        .split-pane-wrapper { flex: 1; height: 100%; position: relative; border-right: 2px solid #2c3e50; }
+        .split-pane-wrapper:last-child { border-right: none; }
+        iframe { width: 100%; height: 100%; border: none; }
+        @media (max-width: 768px) { .split-container { flex-direction: column; } .split-pane-wrapper { border-right: none; border-bottom: 2px solid #2c3e50; } }
+        
+        .click-interceptor { position: absolute; top: 0; left: 0; width: 100%; height: 60px; z-index: 10; cursor: pointer; }
 
-        /* Contenitore principale */
-        .split-container {
-            display: flex;
-            height: calc(100% - var(--header-height));
-            width: 100%;
-            background-color: #ecf0f1;
+        /* Stile pulsanti header */
+        .btn-header {
+            background: rgba(255,255,255,0.1); 
+            border: 1px solid rgba(255,255,255,0.3); 
+            color: #ddd; 
+            border-radius: 4px; 
+            cursor: pointer;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            font-weight: bold;
         }
-
-        /* Iframe styling */
-        .split-pane-wrapper {
-            flex: 1;
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .split-pane {
-            border: none;
-            width: 100%; height: 100%;
-            /* Ombra interna per dare profondità */
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
-        }
-
-        /* Separatore centrale */
-        .split-separator {
-            width: 4px;
-            background: linear-gradient(to bottom, #34495e, #3498db, #34495e);
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            z-index: 5;
-        }
-
-        /* Responsive: Su cellulare impila verticalmente */
-        @media (max-width: 768px) {
-            .split-container { flex-direction: column; }
-            .split-separator { width: 100%; height: 4px; background: linear-gradient(to right, #34495e, #3498db, #34495e); }
-        }
+        .btn-header:hover { background: rgba(255,255,255,0.2); color: white; }
     </style>
 </head>
 <body>
 
-    <div class="split-header">
-        <div class="split-title">
-            <span>👥</span> MODALITÀ SQUADRA <span style="opacity:0.5; font-size:0.8em;">#{{ match_id }}</span>
-        </div>
+<div class="split-header">
+    👥 SQUADRA #{{ match_id }} 
+    
+    <button onclick="toggleFullScreen()" class="btn-header">🖥️ FULLSCREEN</button>
+    
+    <button onclick="window.close()" class="btn-header">❌ CHIUDI</button>
+</div>
+
+<div class="split-container">
+    <div class="split-pane-wrapper">
+        <div class="click-interceptor" onclick="focusPlayer('{{ p1 }}')"></div>
+        <iframe src="{{ url_for('main.index', player_name=p1, context='split') }}"></iframe>
     </div>
-
-    <div class="split-container">
-        <div class="split-pane-wrapper">
-            <iframe class="split-pane" src="{{ url_for('main.index', player_name=p1, context='split') }}" name="frame_p1"></iframe>
-        </div>
-        
-        <div class="split-separator"></div>
-
-        <div class="split-pane-wrapper">
-            <iframe class="split-pane" src="{{ url_for('main.index', player_name=p2, context='split') }}" name="frame_p2"></iframe>
-        </div>
+    <div class="split-pane-wrapper">
+        <div class="click-interceptor" onclick="focusPlayer('{{ p2 }}')"></div>
+        <iframe src="{{ url_for('main.index', player_name=p2, context='split') }}"></iframe>
     </div>
+</div>
 
+<script>
+    // Funzione per navigare al giocatore singolo
+    function focusPlayer(playerName) {
+        if (window.opener && !window.opener.closed) {
+            window.opener.location.href = "/tracker/" + playerName;
+            window.close();
+        } else {
+            window.location.href = "/tracker/" + playerName;
+        }
+    }
+
+    // Funzione per attivare/disattivare il Full Screen
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`Errore attivazione full-screen: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+</script>
 </body>
 </html>

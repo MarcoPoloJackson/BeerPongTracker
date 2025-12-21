@@ -1,0 +1,172 @@
+/* ==========================================
+   DASHBOARD HEADER (Restyling User Bar)
+   ========================================== */
+
+.dashboard-header {
+    background: white;
+    border-radius: 20px;
+    padding: 15px 25px;
+    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.02);
+    position: relative;
+    z-index: 10;
+}
+
+/* --- LATO SINISTRO: IDENTITÀ --- */
+.player-identity {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.identity-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2c3e50, #4ca1af); /* Gradiente serio/profondo */
+    color: white;
+    font-size: 1.5em;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(44, 62, 80, 0.3);
+    border: 3px solid #f0f2f5; /* Anello esterno */
+}
+
+.identity-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.id-label {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.id-name {
+    font-size: 1.2em;
+    font-weight: 900;
+    color: #1e293b;
+    line-height: 1.1;
+}
+
+/* --- LATO DESTRO: CONTROLLI --- */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* TOGGLE SWITCH PERSONALIZZATO */
+.toggle-form { margin: 0; }
+
+.edit-toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    background: #f8fafc;
+    padding: 8px 15px;
+    border-radius: 50px;
+    border: 1px solid #e2e8f0;
+    transition: 0.2s;
+}
+
+.edit-toggle-wrapper:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.edit-toggle-wrapper input {
+    display: none; /* Nascondi checkbox nativa */
+}
+
+.toggle-visual {
+    width: 40px;
+    height: 22px;
+    background: #cbd5e1;
+    border-radius: 20px;
+    position: relative;
+    transition: 0.3s ease;
+}
+
+.toggle-knob {
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Stato Checked (ON) */
+.edit-toggle-wrapper input:checked + .toggle-visual {
+    background: #22c55e; /* Verde */
+}
+
+.edit-toggle-wrapper input:checked + .toggle-visual .toggle-knob {
+    transform: translateX(18px);
+}
+
+.toggle-label-text {
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #64748b;
+    user-select: none;
+}
+
+.edit-toggle-wrapper input:checked ~ .toggle-label-text {
+    color: #15803d; /* Verde scuro testo */
+}
+
+/* LOGOUT BUTTON */
+.btn-logout {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 2px solid #fee2e2;
+    background: #fff1f2;
+    color: #e11d48;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.9em;
+    transition: all 0.2s;
+}
+
+.btn-logout:hover {
+    background: #e11d48;
+    color: white;
+    border-color: #e11d48;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+}
+
+.logout-icon { font-size: 1.1em; line-height: 1;}
+
+/* Responsive per mobile: impila se necessario */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .header-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .toggle-label-text {
+        font-size: 0.75em;
+    }
+}

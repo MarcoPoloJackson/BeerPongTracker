@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Grafici - {{ player_name }}{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/grafici/grafici_home.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="stats-container">
+    
+    <div class="stats-header">
+        {# --- HEADER CON ICONA --- #}
+        <div class="header-title-wrapper">
+            {# Logica sicura per trovare l'icona #}
+            {% set p_obj = players|selectattr("name", "equalto", player_name)|first if players is defined else None %}
+            
+            <div class="header-avatar-large">
+                {% if p_obj and p_obj.icon %}
+                    {{ p_obj.icon }}
+                {% else %}
+                    {{ player_name[:1]|upper }}
+                {% endif %}
+            </div>
+            
+            <h1>Statistiche di {{ player_name }}</h1>
+        </div>
+
+        <a href="{{ url_for('main.home') }}" class="btn-back">⬅ Torna alla Home</a>
+    </div>
+
+    <div class="top-widgets">
+        <div class="widget">
+            <span>Partite Giocate</span>
+            <strong>{{ counts.match_giocati_totali }}</strong>
+            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                Oggi: {{ daily.matches }}
+            </div>
+        </div>
+
+        <div class="widget">
+            <span>Vittorie</span>
+            <strong>{{ counts.vittorie_totali }}</strong>
+            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                Oggi: {{ daily.wins }}
+            </div>
+        </div>
+
+        <div class="widget">
+            <span>Win Rate</span>
+            <strong>
+                {% if counts.match_giocati_totali > 0 %}
+                    {{ (counts.vittorie_totali / counts.match_giocati_totali * 100) | round(1) }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </strong>
+            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                Oggi: {{ daily.win_rate }}%
+            </div>
+        </div>
+
+        <div class="widget">
+            <span>Tiri Totali</span>
+            <strong>{{ counts.tiri_totali }}</strong>
+            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                Oggi: {{ daily.counts.totali }}
+            </div>
+        </div>
+    </div>
+
+
+    <div class="stats-grid">
+        <div class="chart-card">
+            <h3>🎯 Percentuale di Successo (Centri)</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartSuccess"></canvas>
+            </div>
+            <p class="chart-note">Confronto tra la tua media storica e l'ultima giornata giocata.</p>
+        </div>
+
+        <div class="chart-card">
+            <h3>🧱 Percentuale Bordi (su errori)</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartRim"></canvas>
+            </div>
+            <p class="chart-note">Frequenza con cui i tiri sbagliati colpiscono il bordo del bicchiere</p>
+        </div>
+
+        <div class="chart-card">
+            <h3>🎂 Distribuzione Tiri Storica</h3>
+            <div class="pie-chart-container">
+                <canvas id="chartDistribution"></canvas>
+            </div>
+            <p class="chart-note">Panoramica totale di Centri, Bordi e Miss.</p>
+        </div>
+
+        <div class="chart-card">
+            <h3>🥧 Distribuzione Tiri Giornaliera</h3>
+            <div class="pie-chart-container">
+                <canvas id="chartDailyDistribution"></canvas>
+            </div>
+            <p class="chart-note">Panoramica Giornaliera di Centri, Bordi e Miss.</p>
+        </div>
+    </div> 
+
+    <div class="bottom-widgets-container">
+        
+        <h2 class="section-title">🏅 Record</h2>
+
+        <div class="top-widgets">
+            
+            <div class="widget">
+                <span>🔥 Serie più lunga di Centri</span>
+                <strong>{{ special.longest_streak_success }}</strong>
+                <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                    Oggi: {{ special.daily_streak_success }}
+                </div>
+            </div>
+
+            <div class="widget">
+                <span>🙅‍♂️ Serie più lunga di colpi Sbagliati</span>
+                <strong>{{ special.longest_streak_fail }}</strong>
+                <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                    Oggi: {{ special.daily_streak_fail }}
+                </div>
+            </div>
+
+            <div class="widget">
+                <span>🛡️ Tiri Salvezza</span>
+                <strong>{{ special.clutch_rate }}%</strong>
+                <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                    ({{ special.clutch_made }} su {{ special.clutch_attempts }})
+                </div>
+            </div>
+
+            <div class="widget">
+                <span>🚀 Multi-Hit</span>
+                {% if special.multi_hits %}
+                    <div class="multi-hit-list">
+                        {% for nome, conteggio in special.multi_hits.items() %}
+                            <div class="multi-hit-item">
+                                <span>{{ nome }}</span>
+                                <span class="multi-hit-count">{{ conteggio }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <strong>0</strong>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="bottom-widgets-container">
+            <h2 class="section-title">📈 Trend</h2>
+            
+            <div class="stats-grid">
+                <div class="chart-card">
+                    <h3>📈 Successo: Trend Storico</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartSuccessTrend"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>🕒 Successo: Storico vs Oggi (Fascia Oraria)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartSuccessHourly"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>📈 Bordi: Trend Storico</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRimTrend"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>🕒 Bordi: Storico vs Oggi (Fascia Oraria)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRimHourly"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# --- MENU DI NAVIGAZIONE IN FONDO --- #}
+    <div class="bottom-navigation">
+        <div class="nav-buttons-container">
+            <a href="{{ url_for('main.grafici_formati') }}" class="btn-nav extra">
+                📊 Analisi Formati
+            </a>
+            <a href="{{ url_for('main.grafici_extra') }}" class="btn-nav extra">
+                🚀 Statistiche Extra
+            </a>
+        </div>
+    </div>
+
+</div> 
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/grafici/grafici_home.js') }}"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const chartData = {
+                historical: {{ historical | tojson }},
+                daily: {{ daily | tojson }},
+                rawStats: {{ stats_data | tojson }},
+                special: {{ special | tojson }},
+                trendDaily: {{ trend_daily | tojson }},
+                trendHourly: {{ trend_hourly | tojson }}
+            };
+
+            renderComparisonCharts(chartData);
+        });
+    </script>
+{% endblock %}

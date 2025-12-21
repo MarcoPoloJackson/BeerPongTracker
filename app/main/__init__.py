@@ -4,4 +4,4 @@ from flask import Blueprint
 # Note: In templates, url_for('index') becomes url_for('main.index')
 bp = Blueprint('main', __name__)
 
-from app.main import routes, modifiche_manuali
+from app.main import routes, modifiche_manuali, routes_grafici

@@ -2,32 +2,26 @@
 
 {% block title %}{{ titolo }}{% endblock %}
 
-{# LOGICA PER LA CLASSE CSS NEL BODY #}
 {% block body_class %}
-{% if redemption_info and redemption_info.active and redemption_info.is_me %}redemption-active-me{% endif %}
+{# AGGIUNTO 'preload' ALL'INIZIO #}
+preload {% if redemption_info and redemption_info.active and redemption_info.is_me %}redemption-active-me{% endif %}
 {% endblock %}
 
 {% block styles %}
-    {# CSS dedicato al redemption e al tavolo #}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/redemption.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/table/table.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/table/formato.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/table/multi_hits.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overtime.css') }}">
+    {# Il CSS specifico per il tasto team ora è in main.css #}
 {% endblock %}
 
 {% block content %}
 
-    {# --- INIEZIONE LOGICA E RESTYLING OVERTIME --- #}
-    {# Questo file caricherà il CSS che trasforma la pagina da bianca a Dark/Neon #}
     {% include 'includes/overtime.html' %}
-    
-    {# --- 1. OVERLAY DI FINE PARTITA --- #}
     {% include 'includes/game_over_overlay.html' %}
 
-    {# ... resto del codice invariato ... #}
-
-    {# --- 2. ANIMAZIONE FORMATO (Overlay temporaneo) --- #}
+    {# Animazione Formato #}
     <div id="format-overlay">
         <div class="format-content-wrapper">
             <div id="format-shape" class="format-shape"></div> 
@@ -35,67 +29,48 @@
         </div>
     </div>
 
-
-    {# ================================================================= #}
-    {#   SE LA PARTITA NON È FINITA, MOSTRA L'INTERFACCIA DI GIOCO       #}
-    {# ================================================================= #}
     {% if not game_result %}
-
-    <div class="container fade-in">
+    <div class="container">
         
-        {# --- HEADER NAVIGAZIONE --- #}
+        {# HEADER #}
         <div class="nav-header">
-            <a href="{{ url_for('main.select_player') }}" class="btn-back">⬅ Esci</a>
+            <a href="{{ url_for('main.home') }}" class="btn-back">⬅ Esci</a>
             <div style="font-weight: 800; font-size: 1.1em; color: #34495e;">{{ player_name }}</div>
             <div style="width: 40px; height: 40px;"></div> 
         </div>
 
-        {# --- PULSANTE SQUADRA / VISTA DOPPIA --- #}
+        {# PULSANTE SQUADRA (Logica spostata in JS esterno) #}
         {% if teammate %}
             {% if is_split_context %}
-                {# SE SIAMO DENTRO L'IFRAME (VISTA DOPPIA) #}
+                {# Dentro Iframe #}
                 <a href="{{ url_for('main.index', player_name=player_name) }}" target="_top" style="text-decoration: none; color: inherit; display: block;">
                     <div class="info-card info-team split-active-card">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong>↩️ TORNA A SINGOLO:</strong> {{ player_name }}
-                            </div>
+                            <div><strong>↩️ TORNA A SINGOLO:</strong> {{ player_name }}</div>
                             <div class="split-badge active">📱 VISTA DOPPIA ATTIVA</div>
                         </div>
                     </div>
                 </a>
             {% else %}
-                {# SE SIAMO IN VISTA NORMALE #}
-                <a href="{{ url_for('main.team_mode', player_name=player_name) }}" style="text-decoration: none; color: inherit; display: block;">
-                    <div class="info-card info-team normal-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong>🔗 SQUADRA:</strong> Con <strong>{{ teammate }}</strong>
-                            </div>
-                            <div class="split-badge">📱 VISTA DOPPIA</div>
+                {# Vista Normale - Il click è gestito da handleTeamClick in logic.js #}
+                <div id="team-btn-container" class="info-card info-team disabled-card" onclick="handleTeamClick()">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>🔗 SQUADRA:</strong> Con <strong id="teammate-name-display">{{ teammate }}</strong>
                         </div>
+                        <div class="split-badge" id="team-status-badge">🔒 BLOCCATO</div>
                     </div>
-                </a>
+                    <div id="team-error-msg" style="font-size:0.8em; color:#c0392b; margin-top:5px; display:none;">
+                        Il compagno deve attivare "Condividi" nella Home.
+                    </div>
+                </div>
             {% endif %}
-            
-            <style>
-                .info-team { cursor: pointer; transition: all 0.2s ease-in-out; }
-                .split-badge { background: rgba(0,0,0,0.05); padding: 5px 10px; border-radius: 8px; font-size: 0.8em; color: #555; transition: all 0.2s;}
-                .normal-card:hover { transform: scale(1.02); box-shadow: 0 6px 15px rgba(0,0,0,0.1); background-color: #f0faff; border-left-color: #2196F3; }
-                .split-active-card { background-color: #e8f5e9; border-left-color: #2ecc71; box-shadow: inset 0 0 10px rgba(46, 204, 113, 0.1); }
-                .split-active-card:hover { background-color: #d4edda; transform: translateY(-2px); }
-                .split-badge.active { background: #2ecc71; color: white; font-weight: bold; box-shadow: 0 2px 5px rgba(46, 204, 113, 0.3); }
-            </style>
         {% endif %}
 
-        {# --- INCLUDE BARRA TIRI SALVEZZA (Se attiva) --- #}
         {% include 'includes/redemption.html' %}
 
-    
-
-        {# --- FORM PRINCIPALE DI GIOCO --- #}
+        {# FORM GIOCO #}
         <form action="{{ url_for('main.add_record', player_name=player_name) }}" method="POST" id="gameForm">
-            
             <div class="form-group">
                 <div class="section-title">Risultato del Tiro</div>
                 <div class="result-options">
@@ -107,19 +82,16 @@
                             <div class="mini-leaf lf1">🍃</div><div class="mini-leaf lf2">🍂</div>
                         </div>
                     </label>
-                    
                     <input type="radio" id="opt_bordo" name="risultato_tiro" value="Bordo" onclick="handleResultClick('Bordo')">
                     <label for="opt_bordo" class="result-label bordo-wall">
                         <span class="content"><span class="result-icon">🧱</span>BORDO</span>
                         <div class="brick-wall"></div>
                     </label>
-
                     <input type="radio" id="opt_centro" name="risultato_tiro" value="Centro" onclick="handleResultClick('Centro')">
                     <label for="opt_centro" class="result-label"><span class="result-icon">🎯</span>CENTRO</label>
                 </div>
             </div>
 
-            {# --- INCLUDE GESTIONE TAVOLO (Bicchieri e Formati) --- #}
             {% include 'includes/table.html' %}
 
             <div class="form-group">
@@ -138,25 +110,20 @@
                     <div class="positions-row">
                         <input type="radio" id="pos_sinistra" name="postazione" value="Sinistra" {% if defaults.postazione == 'Sinistra' %}checked{% endif %}>
                         <label for="pos_sinistra" class="pos-pad"><span class="pos-icon-big">⬅️</span>SX</label>
-
+                        
                         <input type="radio" id="pos_centrale" name="postazione" value="Centrale" {% if defaults.postazione == 'Centrale' %}checked{% endif %}>
                         <label for="pos_centrale" class="pos-pad"><span class="pos-icon-big">⏺️</span>CEN</label>
-
+                        
                         <input type="radio" id="pos_destra" name="postazione" value="Destra" {% if defaults.postazione == 'Destra' %}checked{% endif %}>
                         <label for="pos_destra" class="pos-pad"><span class="pos-icon-big">➡️</span>DX</label>
                     </div>
                 </div>
             </div>
-
         </form>
 
-        {# --- SPAZIO E BANNER SCALA (Fuori dal form principale) --- #}
+        {# BANNER SCALA #}
         {% if waiting_for_opponent and waiting_for_opponent > 0 and not match_status.startswith('redemption') %}
-            
-            <div style="margin: 40px 0 20px 0;">
-                <hr style="border: 0; border-top: 2px dashed #cfd8dc; margin-bottom: 25px;">
-            </div>
-
+            <div style="margin: 40px 0 20px 0;"><hr style="border: 0; border-top: 2px dashed #cfd8dc; margin-bottom: 25px;"></div>
             <div class="info-card fade-in" style="background:#e3f2fd; border-left: 5px solid #2196F3; color:#0d47a1; display:flex; align-items:center; justify-content:space-between; gap:15px; padding: 20px; box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15); margin-bottom: 30px;">
                 <div style="display:flex; align-items:center; gap:15px;">
                     <span style="font-size:2em;">🎯</span>
@@ -165,28 +132,38 @@
                         <span style="font-size:0.95em; display:block; opacity: 0.8;">Ci sono <b>{{ waiting_for_opponent }}</b> bicchieri da togliere.</span>
                     </div>
                 </div>
-                
                 <form action="{{ url_for('main.force_update', player_name=player_name) }}" method="POST" style="margin:0; padding:0; width:auto; box-shadow:none; background:transparent;">
-                    <button type="submit" class="btn-force" style="background:#2196F3; color:white; padding: 12px 20px; border-radius: 10px; font-weight: 800; border: none; cursor: pointer;">
-                        SCALA ORA
-                    </button>
+                    <button type="submit" class="btn-force" style="background:#2196F3; color:white; padding: 12px 20px; border-radius: 10px; font-weight: 800; border: none; cursor: pointer;">SCALA ORA</button>
                 </form>
             </div>
         {% endif %}
 
-        {# --- STORICO TIRI CON EMOJI --- #}
+        {# STORICO TIRI #}
         <div class="history-section">
-            <div class="section-title" style="margin-bottom:10px;">Ultimi Tiri</div>
+            <div class="section-title" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Ultimi Tiri</span>
+                <small style="font-size:0.7em; color:#888;">Sessione corrente</small>
+            </div>
             <ul class="history-list">
                 {% for riga in dati %}
-                    {% set border_class = 'border-miss' %}
-                    {% if riga["Centro"] == 'Sì' %}{% set border_class = 'border-centro' %}
-                    {% elif riga["Bordo"] == 'Sì' %}{% set border_class = 'border-bordo' %}{% endif %}
-
-                    {# --- LOGICA EMOJI BEVANDA (Nuova) --- #}
-                    {% set d_text = riga["Bevanda"]|lower %}
-                    {% set d_emoji = '🍺' %} {# Default Birra #}
+                    {% set card_class = 'border-miss' %}
+                    {% set text_color = '#7f8c8d' %}
+                    {% set main_icon = '💨' %}
+                    {% set main_label = 'MISS' %}
+                    {% if riga["Centro"] == 'Sì' %}
+                        {% set card_class = 'border-centro' %}
+                        {% set text_color = '#2e7d32' %}
+                        {% set main_icon = '🎯' %}
+                        {% set main_label = 'CENTRO' %}
+                    {% elif riga["Bordo"] == 'Sì' %}
+                        {% set card_class = 'border-bordo' %}
+                        {% set text_color = '#e65100' %}
+                        {% set main_icon = '🧱' %}
+                        {% set main_label = 'BORDO' %}
+                    {% endif %}
                     
+                    {% set d_text = riga["Bevanda"]|lower %}
+                    {% set d_emoji = '🍺' %} 
                     {% if 'acqua' in d_text %}{% set d_emoji = '💧' %}
                     {% elif 'vino' in d_text or 'rosso' in d_text %}{% set d_emoji = '🍷' %}
                     {% elif 'spritz' in d_text or 'aperol' in d_text %}{% set d_emoji = '🍹' %}
@@ -196,56 +173,51 @@
                     {% elif 'caffè' in d_text or 'coffee' in d_text %}{% set d_emoji = '☕' %}
                     {% endif %}
 
-                    <li class="history-card {{ border_class }}">
-                        <div class="h-header">
-                            <span class="h-result" style="color: {% if riga['Centro']=='Sì' %}#2e7d32{% elif riga['Bordo']=='Sì' %}#ef6c00{% else %}#7f8c8d{% endif %};">
-                                {% if riga["Centro"] == 'Sì' %}🎯 CENTRO
-                                {% elif riga["Bordo"] == 'Sì' %}🧱 BORDO
-                                {% else %}༄ MISS{% endif %}
+                    <li class="history-card {{ card_class }}" style="position: relative; padding-right: 70px;">
+                        <div class="h-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <span class="h-result" style="font-weight: 900; font-size: 1.1em; color: {{ text_color }};">
+                                {{ main_icon }} {{ main_label }}
                             </span>
-                            
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span class="h-time">{{ riga["Data"] }}</span>
-                                <form method="POST" action="{{ url_for('main.delete_record', player_name=player_name, id=riga['ID']) }}" onsubmit="return confirm('Cancellare ID {{ riga["ID"] }}?');" style="box-shadow:none; padding:0; display:inline; background:transparent; width:auto;">
-                                    <button type="submit" class="btn-del-history">&times;</button>
-                                </form>
-                            </div>
+                            <span class="h-time" style="font-size: 0.85em; color: #999;">{{ riga["Data"] }}</span>
                         </div>
                         <div style="font-size:0.9em; color:#444;">
-                             {% if riga["Centro"] == "Sì" %}
-                                <div style="color: #2e7d32; font-weight:bold; margin-bottom: 4px;">Colpiti: {{ riga["Colpiti"] }}</div>
-                            {% endif %}
-                            
-                            <div class="h-detail">
-                                {# TAG POSIZIONE #}
-                                <span class="tag">📍 {{ riga["Posizione"] }}</span>
-
-                                {# TAG BEVANDA (NUOVO) #}
-                                <span class="tag" style="background-color: #fff8e1; color: #f57f17; border: 1px solid #ffe082;">
-                                    {{ d_emoji }} {{ riga["Bevanda"] }}
-                                </span>
-
-                                {# ALTRI TAG #}
-                                {% if riga["Salvezza"] == "Sì" %}<span class="tag tag-imp">🛡️ Salvezza</span>{% endif %}
-                                {% if riga["Multipli"] and riga["Multipli"] != "-" %} <span class="tag" style="background:#e8f5e9; color:#2e7d32;">⚡ {{ riga["Multipli"] }}</span> {% endif %}
-                            </div>
-                            
-                            {# NOTE (Se presenti) #}
-                            {% if riga["Note"] %}
-                                <div style="margin-top:5px; font-style:italic; font-size:0.85em; color:#666;">
-                                    📝 "{{ riga["Note"] }}"
+                            {% if riga["Centro"] == "Sì" and riga["Colpiti"] and riga["Colpiti"] != "N/A" %}
+                                <div style="background: rgba(46, 125, 50, 0.08); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #2e7d32;">
+                                    <strong style="color:#1b5e20; font-size:0.9em;">Colpiti:</strong>
+                                    <span style="font-family: monospace; font-size: 1.1em; color:#000;">{{ riga["Colpiti"] }}</span>
                                 </div>
                             {% endif %}
+                            <div class="h-detail" style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+                                {% if riga["Posizione"] %}<span class="tag" style="background:#f5f5f5; border:1px solid #ddd; color:#555;">📍 {{ riga["Posizione"] }}</span>{% endif %}
+                                <span class="tag" style="background-color: #fff8e1; color: #f57f17; border: 1px solid #ffe082;">{{ d_emoji }} {{ riga["Bevanda"] }}</span>
+                                {% if riga["Salvezza"] == "Sì" %}<span class="tag" style="background:#ffcdd2; color:#b71c1c; border:1px solid #e57373; font-weight:bold;">🛡️ Salvezza</span>{% endif %}
+                                {% if riga["Multipli"] and riga["Multipli"] != "-" and riga["Multipli"] != "" %}<span class="tag" style="background:#e1f5fe; color:#0277bd; border:1px solid #4fc3f7; font-weight:bold;">⚡ {{ riga["Multipli"] }}</span>{% endif %}
+                            </div>
+                            {% if riga["Note"] %}<div style="margin-top:8px; padding-top:5px; border-top:1px dashed #eee; font-style:italic; font-size:0.85em; color:#666;">📝 "{{ riga["Note"] }}"</div>{% endif %}
+                        </div>
+                        
+                        {# --- TASTI AZIONE --- #}
+                        <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
+                            <a href="{{ url_for('main.edit_record', player_name=player_name, id=riga['ID']) }}" 
+                               class="btn-edit-history" 
+                               title="Modifica"
+                               style="font-size: 1.2em; color: #3498db; cursor: pointer; text-decoration: none; padding: 2px;">
+                               ✏️
+                            </a>
+                            <form method="POST" action="{{ url_for('main.delete_record', player_name=player_name, id=riga['ID']) }}" 
+                                  onsubmit="return confirm('Vuoi cancellare questo tiro? (ID: {{ riga["ID"] }})');" 
+                                  style="margin: 0; padding: 0; background: none; box-shadow: none; width: auto;">
+                                <button type="submit" class="btn-del-history" style="font-size: 1.2em; color: #ccc; cursor: pointer; background: transparent; border: none; padding: 2px;">&times;</button>
+                            </form>
                         </div>
                     </li>
                 {% else %}
-                    <li style="text-align:center; color:#ccc; margin-top:20px;">Nessun tiro recente.</li>
+                    <li style="text-align:center; color:#ccc; margin-top:30px; font-style: italic;">Non hai ancora effettuato tiri in questa sessione.</li>
                 {% endfor %}
             </ul>
         </div>
-        
-    </div> {% endif %} 
-    {# --- FINE DEL BLOCCO IF NOT GAME_RESULT --- #}
+    </div> 
+    {% endif %}
 
 {% endblock %}
 
@@ -253,8 +225,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
 <script>
-    // --- VARIABILI GLOBALI DI STATO ---
+    // --- VARIABILI GLOBALI (Necessarie per i file JS esterni) ---
     let rehits = []; 
+    
+    // Dati Jinja passati a Window
+    window.teammateName = "{{ teammate }}";
+    window.myPlayerName = "{{ player_name }}";
+    window.teamViewUrl = "{{ url_for('main.team_mode', player_name=player_name) }}";
 
     const activeCupsOpponent = {{ defaults.opp_active_cups | tojson | default('[]') }};
     const activeCupsMe = {{ defaults.my_active_cups | tojson | default('[]') }};
@@ -267,101 +244,38 @@
     
     const isMatchActive = {{ is_match | tojson | default('false') }};
     const gameResult = "{{ game_result if game_result else '' }}";
-
-    // --- VARIABILI SPECIALI ---
-    // 1. Trigger Animazione (se Flask dice di farla partire)
     const triggerAnimation = {{ show_animation | tojson | default('false') }};
-    
-    // 2. ID Partita (per sapere quale aggiornare via WebSocket)
     const myMatchId = {{ defaults.match_id | default(0) }};
 
-    document.addEventListener("DOMContentLoaded", function() {
+    // ==========================================
+    //  SCRIPT MEMORIA POSTAZIONE (NUOVO)
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Chiave unica per questo giocatore
+        const posKey = "last_position_" + window.myPlayerName;
         
-        // --- LOGICA COLORE BEVANDA ---
-        const drinkInput = document.getElementById('bevanda');
+        // 1. Controlla se c'è una posizione salvata in memoria
+        const savedPos = localStorage.getItem(posKey);
         
-        if (drinkInput) {
-            function updateDrinkColor() {
-                const text = drinkInput.value.toLowerCase().trim();
-                
-                // Rimuove tutte le classi drink precedenti
-                drinkInput.classList.remove(
-                    'drink-water', 'drink-beer', 'drink-spritz', 
-                    'drink-wine', 'drink-jager', 'drink-coke', 
-                    'drink-ginlemon', 'drink-gintonic'
-                );
-
-                // Assegna la classe in base al testo (include parziale)
-                if (text.includes('acqua')) {
-                    drinkInput.classList.add('drink-water');
-                } 
-                else if (text.includes('birra') || text.includes('cerveza')) {
-                    drinkInput.classList.add('drink-beer');
-                }
-                else if (text.includes('spritz') || text.includes('aperol') || text.includes('campari')) {
-                    drinkInput.classList.add('drink-spritz');
-                }
-                else if (text.includes('vino') || text.includes('rosso') || text.includes('bianco')) {
-                    drinkInput.classList.add('drink-wine');
-                }
-                else if (text.includes('jager') || text.includes('bomb')) {
-                    drinkInput.classList.add('drink-jager');
-                }
-                else if (text.includes('coca') || text.includes('pepsi')) {
-                    drinkInput.classList.add('drink-coke');
-                }
-                else if (text.includes('gin lemon') || text.includes('lemon')) {
-                    drinkInput.classList.add('drink-ginlemon');
-                }
-                else if (text.includes('gin tonic') || text.includes('tonic') || text.includes('gin')) {
-                    drinkInput.classList.add('drink-gintonic');
-                }
-            }
-
-            // Attiva l'evento mentre scrivi e al caricamento pagina
-            drinkInput.addEventListener('input', updateDrinkColor);
-            updateDrinkColor(); // Per colorare se c'è già un valore salvato
+        if (savedPos) {
+            // Se esiste, seleziona il radio button corrispondente
+            const radio = document.querySelector(`input[name="postazione"][value="${savedPos}"]`);
+            if (radio) radio.checked = true;
         }
-    });
 
+        // 2. Salva la posizione ogni volta che la cambi
+        const radios = document.querySelectorAll('input[name="postazione"]');
+        radios.forEach(r => {
+            r.addEventListener('change', (e) => {
+                localStorage.setItem(posKey, e.target.value);
+            });
+        });
+    });
 </script>
 
-{# CARICAMENTO MODULARE DEL GIOCO #}
+{# CARICAMENTO MODULARE #}
 <script src="{{ url_for('static', filename='js/game/config.js') }}"></script>
 <script src="{{ url_for('static', filename='js/game/ui.js') }}"></script>
 <script src="{{ url_for('static', filename='js/game/logic.js') }}"></script>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        
-        // --- A. LOGICA ANIMAZIONE FORMATO ---
-        if (triggerAnimation === true && typeof playFormatAnimation === "function") {
-            playFormatAnimation(serverOppFormat);
-        }
-
-        // --- B. LOGICA WEBSOCKET (AGGIORNAMENTO PAGINA) ---
-        // Verifica se la libreria è caricata
-        if (typeof io !== 'undefined') {
-            const socket = io();
-
-            // Debug connessione
-            socket.on('connect', function() {
-                console.log("Socket connesso: In ascolto di aggiornamenti...");
-            });
-
-            // Ascolta l'evento 'partita_aggiornata' dal server
-            socket.on('partita_aggiornata', function(data) {
-                console.log("Aggiornamento ricevuto per match ID:", data.match_id);
-                
-                // Se l'aggiornamento riguarda QUESTA partita, ricarica la pagina
-                if (data.match_id === myMatchId) {
-                    console.log("Corrisponde alla mia partita! Ricarico...");
-                    location.reload(); 
-                }
-            });
-        } else {
-            console.warn("Attenzione: Libreria Socket.IO non trovata. L'auto-refresh non funzionerà.");
-        }
-    });
-</script>
 {% endblock %}

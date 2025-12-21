@@ -280,8 +280,7 @@ function renderGrid(container, format, activeList, isOpponent) {
         row.forEach((cupName, cupIndex) => {
             const circle = document.createElement('div');
             circle.className = 'cup-circle';
-            // Animazione ingresso a cascata
-            circle.style.animationDelay = `${(rowIndex * 0.1) + (cupIndex * 0.05)}s`;
+            
 
             // Controlla se è eliminato
             if (activeList !== null && Array.isArray(activeList) && !activeList.includes(cupName)) {
@@ -322,22 +321,27 @@ function renderGrid(container, format, activeList, isOpponent) {
 }
 
 
-// In fondo a ui.js
+/* =========================================================================
+   RIMOZIONE BLOCCO ANIMAZIONI (METODO GRAFICO SINCRONIZZATO)
+   ========================================================================= */
 document.addEventListener('DOMContentLoaded', function() {
     
-    // 1. Popola menu e blocca se necessario
+    // 1. DISEGNA L'INTERFACCIA
+    // Eseguiamo le funzioni mentre il CSS .preload (sul body) sta bloccando tutto.
     if (typeof updateAvailableFormats === 'function') updateAvailableFormats();
-    
-    // 2. Disegna il tavolo
     if (typeof updateCupsVisuals === 'function') updateCupsVisuals();
-    
-    // 3. Gestisce la UI dei colpi (Centro/Miss)
     if (typeof handleLogic === 'function') handleLogic();
-
-    // 4. Applica il colore iniziale al box formato
     if (typeof updateFormatColor === 'function') updateFormatColor();
-});
 
+    // 2. TOGLI IL BLOCCO (Sincronizzato con la grafica)
+    // requestAnimationFrame nidificato garantisce che il browser abbia
+    // effettivamente renderizzato il frame statico prima di riabilitare le transizioni.
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            document.body.classList.remove('preload');
+        });
+    });
+});
 
 
 // OVERTIME 

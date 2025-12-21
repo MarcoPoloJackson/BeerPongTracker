@@ -1,9 +1,12 @@
 from flask import render_template, request, flash, redirect, url_for, session, abort, current_app
-from app.main import bp
+from app.main import bp, modifiche_manuali
 from app.models import db, Player, ActiveMatch, PlayerRecord, CUP_DEFINITIONS
 from datetime import datetime, timedelta
 from itertools import groupby
+from thefuzz import process
 import json
+from app.password import gate_required
+from werkzeug.security import generate_password_hash, check_password_hash
 from app import socketio
 
 # ==========================================
@@ -23,7 +26,16 @@ def get_match_info(player_name):
             return m, 't2'
     return None, None
 
-# Incolla questo all'inizio di routes.py, dopo gli import
+
+def get_clean_drink_fuzzy(input_name):
+    if not input_name: return "Birra"
+    input_name = input_name.strip().capitalize()
+    official_drinks = ["Birra", "Spritz", "Vino", "Gin Lemon", "Gin Tonic", "Acqua", "Jager Bomb", "Coca Cola"]
+    best_match, score = process.extractOne(input_name, official_drinks)
+    if score >= 80:
+        return best_match
+    return input_name
+
 
 def count_cups(json_str):
     """Conta i bicchieri attivi da una stringa JSON."""
@@ -63,92 +75,129 @@ def start_overtime(match):
     
     db.session.commit()
 
-# --- AGGIORNA ANCHE QUESTA PER RESETTARE QUANDO RIGIOCHI ---
+# In routes.py
+
 @bp.route('/rematch/<int:match_id>')
 def rematch(match_id):
-    match = ActiveMatch.query.get_or_404(match_id)
-    
-    # 1. Reset completo parametri
-    match.status = 'running'
-    match.mode = 'squadre' # <--- IMPORTANTISSIMO: Resetta la modalità
-    
-    match.start_time = datetime.now()
-    match.end_time = None
-    match.winning_team = None
-    
-    match.redemption_shots_left = 0
-    match.redemption_hits = 0
-    
-    match.format_target_for_t1 = "Piramide"
-    match.format_target_for_t2 = "Piramide"
-    match.t1_format_changed = False
-    match.t2_format_changed = False
-    
-    match.t1_pending_list = '[]'
-    match.t2_pending_list = '[]'
-    match.pending_damage_for_t1 = 0
-    match.pending_damage_for_t2 = 0
+    """
+    CREA UNA NUOVA PARTITA copiando i giocatori da una partita dello storico.
+    Non tocca la partita vecchia (che rimane salvata come finita).
+    """
+    # 1. Controllo login
+    if 'player_id' not in session:
+        return redirect(url_for('main.login_page'))
 
-    init_cup_state(match, 't1', 'Piramide')
-    init_cup_state(match, 't2', 'Piramide')
+    # 2. Recupera la VECCHIA partita (quella finita che vuoi rigiocare)
+    old_match = ActiveMatch.query.get_or_404(match_id)
+    
+    # 3. Calcola il nuovo numero progressivo per il nome (estetico)
+    count = ActiveMatch.query.count() + 1
+    
+    # 4. Crea l'oggetto per la NUOVA partita
+    new_match = ActiveMatch(
+        match_name=f"Tavolo {count}", 
+        status='running',
+        mode='squadre',
+        start_time=datetime.now(),
+        # Reset totale dei bicchieri
+        t1_cup_state=json.dumps(CUP_DEFINITIONS['Piramide']),
+        t2_cup_state=json.dumps(CUP_DEFINITIONS['Piramide']),
+        t1_pending_list='[]', t2_pending_list='[]'
+    )
 
+    # 5. Mappatura dei giocatori che vorremmo invitare (dalla vecchia partita)
+    candidates = {
+        't1_p1': old_match.t1_p1, 
+        't1_p2': old_match.t1_p2,
+        't2_p1': old_match.t2_p1, 
+        't2_p2': old_match.t2_p2
+    }
+
+    # 6. Controllo: Chi è già impegnato in altre partite attive?
+    active_matches = ActiveMatch.query.filter(ActiveMatch.status != 'finished').all()
+    busy_players = set()
+    for m in active_matches:
+        busy_players.update([m.t1_p1, m.t1_p2, m.t2_p1, m.t2_p2])
+
+    # 7. Assegnazione Intelligente
+    # Se il giocatore è libero -> Lo siedo.
+    # Se è occupato -> Lascio il posto vuoto (None).
+    assigned_count = 0
+    
+    for slot, player_name in candidates.items():
+        if player_name and player_name not in busy_players:
+            setattr(new_match, slot, player_name)
+            assigned_count += 1
+        else:
+            setattr(new_match, slot, None) # Lascia il buco "Siediti"
+
+    # 8. Salvataggio nel DB
+    db.session.add(new_match)
     db.session.commit()
     
-    return redirect(url_for('main.setup_match', match_id=match_id))
+    # Feedback all'utente
+    if assigned_count < 4:
+        flash("Nuovo tavolo creato! Alcuni giocatori erano occupati e sono stati esclusi.", "warning")
+    else:
+        flash("Rematch avviato! Buon divertimento.", "success")
+        
+    return redirect(url_for('main.home'))
+
+
+# 2. AGGIUNGI QUESTA NUOVA ROTTA PER ELIMINARE IL TAVOLO
+@bp.route('/delete_match/<int:match_id>')
+def delete_match(match_id):
+    match = ActiveMatch.query.get_or_404(match_id)
+    
+    # Controllo di sicurezza lato server: Il tavolo DEVE essere vuoto
+    is_empty = not any([match.t1_p1, match.t1_p2, match.t2_p1, match.t2_p2])
+    
+    if is_empty:
+        # Se ci sono record (tiri) associati a questo match, potresti volerli cancellare
+        # o lasciare che il database gestisca la cascata (se configurato).
+        # Per sicurezza eliminiamo i record orfani se necessario, oppure no.
+        # Qui eliminiamo solo il match attivo.
+        db.session.delete(match)
+        db.session.commit()
+        flash(f"Tavolo #{match_id} eliminato.", "success")
+    else:
+        flash("Impossibile eliminare: ci sono giocatori seduti al tavolo.", "error")
+        
+    return redirect(url_for('main.home'))
+
 
 def finish_match(match, winner):
     """
-    Registra la fine della partita e il vincitore.
-    NON resetta i bicchieri qui, per permettere di vedere il risultato finale.
+    Registra la fine della partita, il vincitore e aggiorna i record dei tiri.
     """
     match.status = 'finished'
     match.end_time = datetime.now()
     match.winning_team = winner
     
-    # Salviamo solo lo stato finale. 
-    # Il reset avverrà nella funzione 'rematch' o creando una nuova partita.
-    db.session.commit()
-
-
-@bp.route('/rematch_create/<int:old_match_id>')
-def rematch_create(old_match_id):
-    # 1. Prendi la vecchia partita
-    old_match = ActiveMatch.query.get_or_404(old_match_id)
-    
-    # 2. Pulisci il nome (se si chiamava già "Rematch: Tavolo 1", resta "Rematch: Tavolo 1")
-    base_name = old_match.match_name.replace("Rematch: ", "")
-    
-    # 3. Crea una NUOVA partita (Nuovo ID) copiando i giocatori
-    new_match = ActiveMatch(
-        match_name=f"Rematch: {base_name}",
-        status='running',
-        start_time=datetime.now(),
-        mode=old_match.mode,
+    # --- NUOVA LOGICA: AGGIORNAMENTO STORICO TIRI (WIN/LOSS) ---
+    try:
+        # 1. Identifichiamo i nomi dei vincitori
+        winning_names = []
+        if winner == 't1':
+            winning_names = [match.t1_p1, match.t1_p2]
+        else:
+            winning_names = [match.t2_p1, match.t2_p2]
         
-        # Copia i giocatori identici
-        t1_p1=old_match.t1_p1, t1_p2=old_match.t1_p2,
-        t2_p1=old_match.t2_p1, t2_p2=old_match.t2_p2,
+        # 2. Recuperiamo tutti i record di questa partita
+        records = PlayerRecord.query.filter_by(match_id=match.id).all()
         
-        # Imposta tutto a zero/default
-        format_target_for_t1="Piramide",
-        format_target_for_t2="Piramide",
-        t1_pending_list='[]', t2_pending_list='[]',
-        pending_damage_for_t1=0, pending_damage_for_t2=0,
-        redemption_shots_left=0, redemption_hits=0,
-        t1_format_changed=False, t2_format_changed=False
-    )
-    
-    # 4. Salva la nuova partita nel DB
-    db.session.add(new_match)
-    
-    # 5. Inizializza i bicchieri
-    init_cup_state(new_match, 't1', 'Piramide')
-    init_cup_state(new_match, 't2', 'Piramide')
-    
+        # 3. Aggiorniamo ogni record
+        for record in records:
+            # record.player è l'oggetto Player collegato (grazie alla relationship in models.py)
+            if record.player.name in winning_names:
+                record.match_result = "Win"
+            else:
+                record.match_result = "Loss"
+                
+    except Exception as e:
+        print(f"Errore aggiornamento Win/Loss records: {e}")
+
     db.session.commit()
-    
-    # 6. Torna alla Home (così vedi la nuova partita in cima alla lista LIVE)
-    return redirect(url_for('main.select_player'))
 
 
 def count_shots_in_match(player_name, match_id):
@@ -318,6 +367,7 @@ def get_score_points(match):
     Supporta:
     - Multihits (Doppi/Tripli contano 2/3 punti)
     - Overtime e Redemption (vengono contati nel totale)
+    - Reset al Rematch (conta solo i tiri dall'ultimo start_time)
     """
     try:
         score_t1 = 0
@@ -331,9 +381,11 @@ def get_score_points(match):
         t2_ids = [p.id for p in Player.query.filter(Player.name.in_(t2_names)).all()]
 
         # 2. Prendiamo TUTTI i tiri andati a segno (Centro) di questa partita
+        # MODIFICA: Aggiunto filtro timestamp >= match.start_time
         hits = PlayerRecord.query.filter(
             PlayerRecord.match_id == match.id,
-            PlayerRecord.centro == 'Sì'
+            PlayerRecord.centro == 'Sì',
+            PlayerRecord.timestamp >= match.start_time 
         ).all()
 
         for record in hits:
@@ -361,10 +413,56 @@ def get_score_points(match):
         return 0, 0
 
 
-# --- SOSTITUISCI LA ROTTA "select_player" CON QUESTA ---
 
 @bp.route('/')
-def select_player():
+@gate_required
+def login_page():
+    # Se l'utente è già loggato, lo mandiamo subito alla Home
+    if 'player_id' in session:
+        return redirect(url_for('main.home'))
+    
+    # Recuperiamo i giocatori per mostrarli nelle card di login
+    players = Player.query.order_by(Player.name).all()
+    return render_template('login.html', players=players)
+
+
+# 2. PROCESSO DI LOGIN (Questa è la funzione che mancava!)
+@bp.route('/login', methods=['POST'])
+def login():
+    player_id = request.form.get('player_id')
+    password_input = request.form.get('password')
+    
+    # Qui usiamo Player (maiuscolo) per interrogare il DB
+    player = Player.query.get(player_id) 
+    
+    if player and check_password_hash(player.password, password_input):
+        session['player_id'] = player.id
+        session['player_name'] = player.name
+        return redirect(url_for('main.home'))
+    else:
+        # Se sbagli password, ricarica la pagina di login
+        return redirect(url_for('main.login_page'))
+
+# In app/main/routes.py
+
+@bp.route('/logout')
+def logout():
+    # Abbiamo rimosso la parte che settava player.edit = False
+    # Ora lo stato rimane salvato nel database finché non lo cambi tu dal pulsante.
+    
+    session.clear()
+    return redirect(url_for('main.login_page'))
+
+# 4. HOME (Questa sostituisce la vecchia select_player)
+@bp.route('/home')
+def home():
+    # SE NON SEI LOGGATO, TORNA AL LOGIN
+    if 'player_id' not in session:
+        return redirect(url_for('main.login_page'))
+
+    # --- QUI INCOLLA TUTTA LA LOGICA CHE AVEVI PRIMA IN 'select_player' ---
+    # (ActiveMatch.query..., calcolo punteggi, storico 24h, ecc.)
+    
     # 1. PARTITE ATTIVE
     active_matches = ActiveMatch.query.filter(ActiveMatch.status != 'finished').all()
     
@@ -374,7 +472,7 @@ def select_player():
     for m in active_matches:
         busy_players.extend([m.t1_p1, m.t1_p2, m.t2_p1, m.t2_p2])
         
-        # CALCOLO PUNTEGGIO (Punti Fatti)
+        # CALCOLO PUNTEGGIO
         s1, s2 = get_score_points(m)
         
         stats = {
@@ -390,14 +488,13 @@ def select_player():
             'score_t2': s2
         })
 
-    # 2. STORICO 24H (PARTITE FINITE)
+    # 2. STORICO 24H
     last_24h = datetime.now() - timedelta(hours=24)
     finished_matches = ActiveMatch.query.filter(
         ActiveMatch.status == 'finished',
         ActiveMatch.end_time >= last_24h
     ).all()
 
-    # Logica Raggruppamento (Identica a prima)
     def get_match_key(m):
         t1 = sorted([p for p in [m.t1_p1, m.t1_p2] if p])
         t1_str = " & ".join(t1)
@@ -415,9 +512,7 @@ def select_player():
         
         processed_matches = []
         for m in match_list:
-            # CALCOLO PUNTEGGIO (Punti Fatti) ANCHE PER STORICO
             s1, s2 = get_score_points(m)
-            
             winner = m.winning_team if m.winning_team else 'draw'
             
             processed_matches.append({
@@ -432,57 +527,125 @@ def select_player():
 
     players = Player.query.order_by(Player.name).all()
 
+    # RENDERIZZA LA HOME
     return render_template('home.html', 
                            matches_data=matches_data, 
                            grouped_history=grouped_history,
                            players=players,
-                           busy_players=busy_players)
+                           busy_players=busy_players,
+                           current_user=session.get('player_name'))
 
 
-@bp.route('/setup_match', defaults={'match_id': None}, methods=['GET', 'POST'])
-@bp.route('/setup_match/<int:match_id>', methods=['GET', 'POST'])
-def setup_match(match_id):
-    match = None
-    if match_id: match = ActiveMatch.query.get_or_404(match_id)
+# --- SOSTITUISCI IL BLOCCO setup_match CON QUESTE NUOVE ROTTE ---
 
-    # Calcolo giocatori occupati
-    query = ActiveMatch.query.filter(ActiveMatch.status != 'finished')
-    if match_id: query = query.filter(ActiveMatch.id != match_id)
-    busy_players = set([p for m in query.all() for p in [m.t1_p1, m.t1_p2, m.t2_p1, m.t2_p2] if p])
+@bp.route('/create_match_quick')
+def create_match_quick():
+    """Crea istantaneamente una partita vuota e ricarica la Home."""
+    count = ActiveMatch.query.count() + 1
+    new_match = ActiveMatch(
+        match_name=f"Tavolo {count}",
+        status='running',
+        mode='squadre',
+        start_time=datetime.now(),
+        # Tutti i giocatori a None (Vuoti)
+        t1_p1=None, t1_p2=None, 
+        t2_p1=None, t2_p2=None,
+        # Inizializza bicchieri
+        t1_cup_state=json.dumps(CUP_DEFINITIONS['Piramide']),
+        t2_cup_state=json.dumps(CUP_DEFINITIONS['Piramide']),
+        t1_pending_list='[]', t2_pending_list='[]'
+    )
+    db.session.add(new_match)
+    db.session.commit()
+    return redirect(url_for('main.home'))
 
-    if request.method == 'POST':
-        t1_p1 = request.form.get('t1_p1'); t1_p2 = request.form.get('t1_p2')
-        t2_p1 = request.form.get('t2_p1'); t2_p2 = request.form.get('t2_p2')
-        match_name = request.form.get('match_name') or f"Tavolo {ActiveMatch.query.count() + 1}"
+@bp.route('/assign_slot', methods=['POST'])
+def assign_slot():
+    """Assegna un giocatore a uno slot specifico (chiamato dal Modale in Home)."""
+    match_id = request.form.get('match_id')
+    slot = request.form.get('slot') # es: 't1_p1'
+    player_name = request.form.get('player_name')
+    
+    match = ActiveMatch.query.get_or_404(match_id)
+    
+    # --- INIZIO MODIFICA: CONTROLLO UTENTE IMPEGNATO ---
+    # Usiamo la tua funzione helper esistente per vedere se è occupato
+    busy_match, _ = get_match_info(player_name)
+    
+    # Se busy_match esiste, significa che l'utente è già in gioco
+    if busy_match:
+        flash(f"Impossibile unire: {player_name} è già in una partita attiva!", "error")
+        return redirect(url_for('main.home'))
+    # --- FINE MODIFICA ---
 
-        players_list = [p for p in [t1_p1, t1_p2, t2_p1, t2_p2] if p]
-        if len(players_list) != len(set(players_list)): return "Duplicati"
-        
-        # Creazione o Aggiornamento Match
-        if match:
-            match.match_name = match_name
-            match.t1_p1 = t1_p1; match.t1_p2 = t1_p2
-            match.t2_p1 = t2_p1; match.t2_p2 = t2_p2
-        else:
-            match = ActiveMatch(match_name=match_name, t1_p1=t1_p1, t1_p2=t1_p2, t2_p1=t2_p1, t2_p2=t2_p2,
-                                status='running')
-            db.session.add(match)
-            # Inizializza bicchieri
-            init_cup_state(match, 't1', 'Piramide')
-            init_cup_state(match, 't2', 'Piramide')
-
+    if slot in ['t1_p1', 't1_p2', 't2_p1', 't2_p2']:
+        setattr(match, slot, player_name)
         db.session.commit()
-        return redirect(url_for('main.select_player'))
+        
+    return redirect(url_for('main.home'))
 
-    players = Player.query.order_by(Player.name).all()
-    return render_template('setup_match.html', players=players, match=match, busy_players=busy_players)
+@bp.route('/remove_player_slot/<int:match_id>/<slot>')
+def remove_player_slot(match_id, slot):
+    """Rimuove un giocatore da uno slot (la X rossa sulla Home)."""
+    match = ActiveMatch.query.get_or_404(match_id)
+    if slot in ['t1_p1', 't1_p2', 't2_p1', 't2_p2']:
+        setattr(match, slot, None)
+        db.session.commit()
+    return redirect(url_for('main.home'))
+
+# --- FINE NUOVE ROTTE ---
+
+
+def normalize_db_bool(val):
+    """
+    HELPER: Converte qualsiasi cosa arrivi dal DB (True, 'Sì', 'si', 1) 
+    in una stringa 'Sì' o 'No' pulita per il template HTML.
+    """
+    if val is None: return 'No'
+    # Se è già un booleano python (True/False)
+    if isinstance(val, bool): 
+        return 'Sì' if val else 'No'
+    
+    # Se è una stringa o un numero, convertiamo in testo minuscolo e controlliamo
+    s = str(val).lower().strip()
+    if s in ['sì', 'si', 'true', 'yes', '1', 't', 'on']: 
+        return 'Sì'
+    return 'No'
+
 
 
 @bp.route('/tracker/<player_name>')
 def index(player_name):
-    # 1. Trova giocatore
-    player = Player.query.filter_by(name=player_name).first()
-    if not player: return "Giocatore non trovato", 404
+    # 1.A CHECK LOGIN
+    if 'player_id' not in session:
+        return redirect(url_for('main.login_page'))
+
+    # 1.B TROVA IL GIOCATORE TARGET (Quello di cui vuoi vedere le stat)
+    target_player = Player.query.filter_by(name=player_name).first()
+    if not target_player: 
+        return "Giocatore non trovato", 404
+
+    # 1.C CONTROLLO PERMESSI CON DEBUG
+    current_user_id = session['player_id']
+    
+    # --- RECUPERIAMO L'UTENTE CHE STA NAVIGANDO ---
+    current_user_obj = Player.query.get(current_user_id)
+    is_super_admin = current_user_obj.is_admin if current_user_obj else False
+    # ----------------------------------------------
+
+    is_owner = (current_user_id == target_player.id)
+    edit_allowed = target_player.edit 
+    
+    # Debug
+    print(f"--- DEBUG ACCESS ---")
+    print(f"Chi chiede: {current_user_obj.name} (Admin? {is_super_admin})")
+    print(f"Chi vuole vedere: {target_player.name}")
+    
+    # --- MODIFICA QUI: SE E' SUPER ADMIN, ENTRA SEMPRE ---
+    if not is_owner and not edit_allowed and not is_super_admin:
+        print("ACCESSO NEGATO: Redirect alla Home") 
+        flash(f"Non hai il permesso di modificare il tracker di {player_name}.", "error")
+        return redirect(url_for('main.home'))
 
     # 2. Trova partita e team
     match, team = get_match_info(player_name)
@@ -491,13 +654,13 @@ def index(player_name):
     if not match:
         last_match = ActiveMatch.query.filter(
             ActiveMatch.status == 'finished',
-            (ActiveMatch.t1_p1 == player.name) | (ActiveMatch.t1_p2 == player.name) |
-            (ActiveMatch.t2_p1 == player.name) | (ActiveMatch.t2_p2 == player.name)
+            (ActiveMatch.t1_p1 == target_player.name) | (ActiveMatch.t1_p2 == target_player.name) |
+            (ActiveMatch.t2_p1 == target_player.name) | (ActiveMatch.t2_p2 == target_player.name)
         ).order_by(ActiveMatch.id.desc()).first()
         
         if last_match:
             match = last_match
-            if player.name in [match.t1_p1, match.t1_p2]:
+            if target_player.name in [match.t1_p1, match.t1_p2]:
                 team = 't1'
             else:
                 team = 't2'
@@ -505,19 +668,31 @@ def index(player_name):
 
     # 3. Recupera storico records
     match_id_filter = match.id if match else None
-    records_obj = PlayerRecord.query.filter_by(player_id=player.id).order_by(PlayerRecord.id.desc())
+    records_obj = PlayerRecord.query.filter_by(player_id=target_player.id).order_by(PlayerRecord.id.desc())
     if match_id_filter:
         records_obj = records_obj.filter_by(match_id=match_id_filter)
     records_obj = records_obj.all()
     
+    # =========================================================
+
     clean_records = []
     for r in records_obj:
         clean_records.append({
-            'ID': r.id, 'Miss': r.miss, 'Bordo': r.bordo, 'Centro': r.centro,
-            'Noi': r.cups_own, 'Loro': r.cups_opp, 'Colpiti': r.bicchiere_colpito,
+            'ID': r.id, 
+            # Qui applichiamo la normalizzazione
+            'Miss': normalize_db_bool(r.miss), 
+            'Bordo': normalize_db_bool(r.bordo), 
+            'Centro': normalize_db_bool(r.centro),
+            'Salvezza': normalize_db_bool(r.tiro_salvezza),
+            
+            'Noi': r.cups_own, 
+            'Loro': r.cups_opp, 
+            'Colpiti': r.bicchiere_colpito,
             'Data': r.timestamp.strftime("%H:%M") if r.timestamp else "-", 
-            'Note': r.note, 'Multipli': r.bicchieri_multipli,
-            'Posizione': r.postazione, 'Bevanda': r.bevanda, 'Salvezza': r.tiro_salvezza
+            'Note': r.note, 
+            'Multipli': r.bicchieri_multipli,
+            'Posizione': r.postazione, 
+            'Bevanda': r.bevanda
         })
 
     ultimo_record = records_obj[0] if records_obj else None
@@ -712,8 +887,12 @@ def index(player_name):
 
     teammate = ""
     if match:
-        if team == 't1': teammate = match.t1_p2 if match.t1_p1 == player_name else match.t1_p1
-        else: teammate = match.t2_p2 if match.t2_p1 == player_name else match.t2_p1
+        # CORREZIONE: Usiamo 'player_name' invece di 'player.name'
+        if team == 't1': 
+            teammate = match.t1_p2 if match.t1_p1 == player_name else match.t1_p1
+        else: 
+            teammate = match.t2_p2 if match.t2_p1 == player_name else match.t2_p1
+
 
     # Front End Visualizzazione Partita Finita
     # Controllo Prioritario "Vittoria Assicurata"
@@ -791,7 +970,7 @@ def add_record(player_name):
     submitted_format = request.form.get('formato')
     
     # --- GESTIONE CAMBIO FORMATO SINCRONIZZATO ---
-    format_updated = False # Flag per capire se abbiamo appena cambiato formato
+    format_updated = False 
     
     if match and submitted_format:
         if team == 't1':
@@ -802,7 +981,6 @@ def add_record(player_name):
                 match.t1_format_changed = True
                 db.session.commit()
                 format_updated = True 
-                # AGGIUNGI QUESTA RIGA:
                 session['animazione_pending'] = True 
 
         else: # team == 't2'
@@ -813,21 +991,15 @@ def add_record(player_name):
                 match.t2_format_changed = True
                 db.session.commit()
                 format_updated = True 
-                # AGGIUNGI QUESTA RIGA:
                 session['animazione_pending'] = True
 
-    # --- NUOVO CONTROLLO: SE ABBIAMO CAMBIATO FORMATO, CI FERMIAMO QUI ---
-    # Se il risultato_tiro non è nel form, significa che la JS ha inviato il form solo per il formato
+    # --- CONTROLLO: SE ABBIAMO CAMBIATO FORMATO, CI FERMIAMO QUI ---
     if 'risultato_tiro' not in request.form:
-        # Reindirizziamo l'utente alla pagina del match senza processare statistiche
         return redirect(request.referrer or '/')
 
     # --- LOGICA NORMALE DEL TIRO ---
-    # Ora questa riga non crasha più perché se arriviamo qui, il tiro c'è per forza
     res = request.form['risultato_tiro']
     cups_for_stats = [] 
-
-    # ... resto del tuo codice ...
 
     if match:
         # Applica eventuali danni precedenti
@@ -839,20 +1011,16 @@ def add_record(player_name):
             rehit_str = request.form.get('rehit_list', '')
             rehits_physically_hit = [x for x in rehit_str.split(',') if x] # Bicchieri Azzurri
             
-            # 2. Potenza del tiro (n) definita dal moltiplicatore
+            # 2. Potenza del tiro
             mult_val = request.form.get('bicchieri_multipli', '')
             mapping = {'': 1, 'Doppio': 2, 'Triplo': 3, 'Quadruplo': 4, 'Quintuplo': 5, 'Sestuplo': 6}
             shots_potency = mapping.get(mult_val, 1)
 
             # --- STATISTICHE DI MIRA ---
-            # Uniamo le liste: gli azzurri (pending colpiti) hanno la precedenza temporale,
-            # poi aggiungiamo i rossi evitando duplicati.
             all_clicked = rehits_physically_hit + [c for c in damage_candidates if c not in rehits_physically_hit]
-            
-            # Salviamo nelle statistiche esattamente i primi N bicchieri di questo flusso
             cups_for_stats = all_clicked[:shots_potency]
 
-            # --- LOGICA DANNI (Funzionamento del gioco) ---
+            # --- LOGICA DANNI ---
             opponent_team = 't2' if team == 't1' else 't1'
             opp_pending_list_col = f'{opponent_team}_pending_list'
             opp_pending_int_col = f'pending_damage_for_{opponent_team}'
@@ -861,23 +1029,19 @@ def add_record(player_name):
                 current_pending = json.loads(getattr(match, opp_pending_list_col))
                 initial_count = len(current_pending)
 
-                # Identifichiamo i bicchieri Rossi "nuovi" da aggiungere alla pending_list
                 only_red = [c for c in damage_candidates if c not in rehits_physically_hit]
                 
-                # Aggiungiamo i rossi fino a raggiungere la potenza del tiro
                 for cup in only_red:
                     if (len(current_pending) - initial_count) < shots_potency:
                         if cup not in current_pending:
                             current_pending.append(cup)
                 
-                # Gestione Overkill: se abbiamo fatto centro ma non ci sono (più) rossi da segnare
                 punti_effettivi = len(current_pending) - initial_count
                 mancanti = shots_potency - punti_effettivi
                 if mancanti > 0:
                     for i in range(mancanti):
                         current_pending.append(f"Overkill_{datetime.now().timestamp()}_{i}")
 
-                # Sincronizzazione Redemption
                 if match.status.startswith('redemption'):
                     redeeming_team = 't1' if match.status == 'redemption_t1' else 't2'
                     if team == redeeming_team:
@@ -888,7 +1052,7 @@ def add_record(player_name):
             except Exception as e:
                 print(f"Errore logica Centro: {e}")
 
-        # Decremento tiri in redemption se Miss o Bordo (solo per chi si salva)
+        # Decremento tiri in redemption
         if match.status.startswith('redemption'):
             redeeming_team = 't1' if match.status == 'redemption_t1' else 't2'
             if team == redeeming_team: 
@@ -897,8 +1061,7 @@ def add_record(player_name):
         update_game_state(match)
         db.session.commit()
 
-    # Generiamo la stringa dei colpi basandoci sulla MIRA REALE (cups_for_stats)
-    # Se il risultato è Centro, usiamo la lista della mira, altrimenti "N/A"
+    # Generazione stringa colpi
     hit_str = ", ".join(cups_for_stats) if res == "Centro" and cups_for_stats else "N/A"
     
     # Calcolo bicchieri per storico
@@ -911,9 +1074,68 @@ def add_record(player_name):
             else: curr_my_cups = t2_c; curr_opp_cups = t1_c
         except: pass
 
+    # ==========================================
+    #      CALCOLO DATI STATISTICI AVANZATI
+    # ==========================================
+    
+    # 1. Calcolo numero tiro progressivo
+    shot_number = 1
+    if match:
+        tiri_precedenti = PlayerRecord.query.filter_by(match_id=match.id, player_id=player.id).count()
+        shot_number = tiri_precedenti + 1
+
+    # 2. Data e Ora
+    adesso = datetime.now()
+    match_date_str = adesso.strftime("%Y-%m-%d")
+    match_hour_int = adesso.hour
+
+    # 3. Identificazione ID Compagni e Avversari
+    teammate_id = None; opp1_id = None; opp2_id = None
+
+    if match:
+        teammate_name = None; opp1_name = None; opp2_name = None
+
+        if team == 't1':
+            teammate_name = match.t1_p2 if match.t1_p1 == player.name else match.t1_p1
+            opp1_name = match.t2_p1; opp2_name = match.t2_p2
+        else:
+            teammate_name = match.t2_p2 if match.t2_p1 == player.name else match.t2_p1
+            opp1_name = match.t1_p1; opp2_name = match.t1_p2
+        
+        if teammate_name:
+            tm_obj = Player.query.filter_by(name=teammate_name).first()
+            if tm_obj: teammate_id = tm_obj.id   
+        if opp1_name:
+            o1_obj = Player.query.filter_by(name=opp1_name).first()
+            if o1_obj: opp1_id = o1_obj.id  
+        if opp2_name:
+            o2_obj = Player.query.filter_by(name=opp2_name).first()
+            if o2_obj: opp2_id = o2_obj.id
+
+    # ==========================================
+    #           CREAZIONE RECORD
+    # ==========================================
+
+    # 1. Recupera bevanda grezza
+    raw_bevanda = request.form.get('bevanda', 'Birra')
+    # 2. Pulizia Fuzzy (Usa la funzione helper che hai definito fuori)
+    bevanda_pulita = get_clean_drink_fuzzy(raw_bevanda)
+
     new_rec = PlayerRecord(
         match_id=match.id if match else None,
         player_id=player.id,
+        
+        # Campi Avanzati
+        shot_number=shot_number,
+        teammate_id=teammate_id,
+        opponent1_id=opp1_id,
+        opponent2_id=opp2_id,
+        match_date=match_date_str,
+        match_hour=match_hour_int,
+        is_overtime=(True if match and match.mode == 'overtime' else False),
+        match_result=None,
+        timestamp=adesso,
+
         miss=("Sì" if res == "Miss" else "No"), 
         bordo=("Sì" if res == "Bordo" else "No"),
         centro=("Sì" if res == "Centro" else "No"),
@@ -923,49 +1145,140 @@ def add_record(player_name):
         formato=submitted_format,
         tiro_salvezza=('Sì' if match and match.status == f'redemption_{team}' else 'No'),
         postazione=request.form.get('postazione'),
-        bevanda=request.form.get('bevanda', 'Birra').strip().capitalize(),
+        
+        # USA LA BEVANDA PULITA
+        bevanda=bevanda_pulita,
+        
         bicchieri_multipli=request.form.get('bicchieri_multipli'),
         note=request.form.get('note', '')
     )
     db.session.add(new_rec)
     db.session.commit()
 
-    # --- AGGIUNGI QUESTO SOTTO AL COMMIT, per l'aggiornamento ---
+    # --- Aggiornamento SocketIO ---
     if match:
-        print(f"INVIO SEGNALE AGGIORNAMENTO PER MATCH {match.id}") # Debug
+        print(f"INVIO SEGNALE AGGIORNAMENTO PER MATCH {match.id}") 
         socketio.emit('partita_aggiornata', {'match_id': match.id})
     
     return redirect(url_for('main.index', player_name=player_name))
 
 # --- GESTIONE GIOCATORI ---
-@bp.route('/players')
+@bp.route('/manage_players') # O '/players', controlla il decoratore nel tuo file
 def manage_players():
-    return render_template('players.html', players=Player.query.order_by(Player.name).all())
+    # Reindirizza alla pagina di login/gestione
+    return redirect(url_for('main.login_page'))
 
-@bp.route('/add_player', methods=['POST'])
-def add_player():
-    pn = request.form['player_name'].strip()
-    password_input = request.form['password']
-    hashed_password = generate_password_hash(password_input)
-    if pn and not Player.query.filter_by(name=pn).first():
-        new_player = Player(name=pn, password=hashed_password)
+# --- GESTIONE UTENTI: CREAZIONE E LOGIN UNIFICATO ---
+
+@bp.route('/handle_user_action', methods=['POST'])
+def handle_user_action():
+    """
+    Gestisce sia il LOGIN che la CREAZIONE NUOVO UTENTE dallo stesso form.
+    """
+    player_name = request.form.get('player_name', '').strip()
+    password = request.form.get('password', '').strip()
+    action_type = request.form.get('action_type') # 'login' o 'create'
+
+    if not player_name or not password:
+        flash("Nome e Password sono obbligatori.", "error")
+        return redirect(url_for('main.login_page'))
+
+    # Cerca se l'utente esiste
+    existing_player = Player.query.filter_by(name=player_name).first()
+
+    # --- LOGICA CREAZIONE ---
+    if action_type == 'create':
+        if existing_player:
+            flash(f"Il giocatore '{player_name}' esiste già. Fai il login.", "warning")
+            return redirect(url_for('main.login_page'))
+        
+        # Crea nuovo
+        hashed_pw = generate_password_hash(password)
+        new_player = Player(name=player_name, password=hashed_pw, edit=False)
         db.session.add(new_player)
         db.session.commit()
-    return redirect(url_for('main.manage_players'))
+        
+        # Login automatico dopo creazione
+        session['player_id'] = new_player.id
+        session['player_name'] = new_player.name
+        return redirect(url_for('main.home'))
+
+    # --- LOGICA LOGIN (Default) ---
+    else:
+        if existing_player and check_password_hash(existing_player.password, password):
+            session['player_id'] = existing_player.id
+            session['player_name'] = existing_player.name
+            return redirect(url_for('main.home'))
+        else:
+            flash("Nome utente o password errati.", "error")
+            return redirect(url_for('main.login_page'))
+
+
 
 @bp.route('/delete_player/<int:id>', methods=['POST'])
 def delete_player(id):
-    db.session.delete(Player.query.get_or_404(id))
-    db.session.commit()
-    return redirect(url_for('main.manage_players'))
+    """
+    Elimina un giocatore SOLO se la password fornita è corretta.
+    Cancella anche tutti i suoi record per evitare errori di integrità.
+    """
+    password_input = request.form.get('password_confirm')
+    player = Player.query.get_or_404(id)
+
+    # 1. Verifica Password
+    if not check_password_hash(player.password, password_input):
+        flash("Password errata. Impossibile eliminare il giocatore.", "error")
+        return redirect(url_for('main.login_page'))
+
+    try:
+        # 2. Elimina PRIMA tutti i record associati (Tiri)
+        PlayerRecord.query.filter_by(player_id=id).delete()
+        
+        # Nota: Se il giocatore è in una partita attiva (ActiveMatch), 
+        # dovresti idealmente gestire anche quello, ma per ora ci concentriamo sui record.
+        
+        # 3. Elimina il giocatore
+        db.session.delete(player)
+        db.session.commit()
+        flash(f"Giocatore {player.name} eliminato correttamente.", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Errore eliminazione: {e}")
+        flash("Errore durante l'eliminazione. Controlla che non sia in una partita attiva.", "error")
+
+    return redirect(url_for('main.login_page'))
+
 
 @bp.route('/delete/<player_name>/<int:id>', methods=['POST'])
 def delete_record(player_name, id):
     record = PlayerRecord.query.get(id)
+    
     if record:
-        # Qui potresti aggiungere la logica di "ripristino bicchieri" del vecchio file
-        # se cancelli un record che era Centro. Per brevità l'ho omessa ma posso aggiungerla.
+        # Salviamo i dati contestuali PRIMA di cancellare
+        match_id = record.match_id
+        player_id = record.player_id
+        
+        # 1. Cancella il tiro selezionato
         db.session.delete(record)
-        db.session.commit()
+        db.session.commit() # Commit necessario per aggiornare il DB
+        
+        # 2. LOGICA DI RIPARAZIONE SEQUENZA (Renumbering)
+        # Se il tiro apparteneva a una partita, dobbiamo sistemare i numeri successivi
+        if match_id:
+            # Recuperiamo TUTTI i tiri rimanenti di questo giocatore in questa partita
+            # ordinati cronologicamente (dal primo all'ultimo)
+            remaining_shots = PlayerRecord.query.filter_by(
+                match_id=match_id, 
+                player_id=player_id
+            ).order_by(PlayerRecord.timestamp.asc()).all()
+            
+            # Riassegniamo i numeri progressivi da 1 a N
+            for index, shot in enumerate(remaining_shots):
+                # index parte da 0, quindi shot_number diventa index + 1
+                shot.shot_number = index + 1
+            
+            # Salviamo le modifiche ai numeri
+            db.session.commit()
+
     return redirect(url_for('main.index', player_name=player_name))
 

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Analisi Formati - {{ player_name }}{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/grafici/grafici_formati.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="stats-container">
+    
+    <div class="stats-header">
+        {# --- HEADER CON ICONA --- #}
+        <div class="header-title-wrapper">
+            
+            {# Logica sicura per trovare l'icona #}
+            {% set p_obj = players|selectattr("name", "equalto", player_name)|first if players is defined else None %}
+            
+            <div class="header-avatar-large">
+                {% if p_obj and p_obj.icon %}
+                    {{ p_obj.icon }}
+                {% else %}
+                    {{ player_name[:1]|upper }}
+                {% endif %}
+            </div>
+            
+            <h1>Analisi Formati di {{ player_name }}</h1>
+        </div>
+
+        <a href="{{ url_for('main.home') }}" class="btn-back">⬅ Torna alla Home</a>
+    </div>
+
+    <div class="top-widgets">
+        <div class="widget">
+            <span>Formato più giocato</span>
+            <strong id="widget-most-played">-</strong>
+            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                (Dopo il Formato Piramide)
+            </div>
+        </div>
+        <div class="widget">
+            <span>Miglior Win Rate</span>
+            <strong id="widget-best-winrate">-%</strong>
+        </div>
+        <div class="widget">
+            <span>Miglior Precisione</span>
+            <strong id="widget-best-accuracy">-%</strong>
+        </div>
+    </div>
+
+    <div class="bottom-widgets-container">
+        <h2 class="section-title">📐 Confronto Schemi</h2>
+        
+        <div class="stats-grid">
+            <div class="chart-card">
+                <h3>🏆 Win Rate per Formato</h3>
+                <div class="chart-wrapper">
+                    <canvas id="chartFormatWinRate"></canvas>
+                </div>
+                <p class="chart-note">In quale formato vinci più partite?</p>
+            </div>
+
+            <div class="chart-card">
+                <h3>🎯 Precisione per Formato</h3>
+                <div class="chart-wrapper">
+                    <canvas id="chartFormatAccuracy"></canvas>
+                </div>
+                <p class="chart-note">In che formato sei più efficace?</p>
+            </div>
+
+            <div class="chart-card">
+                <h3>📊 Distribuzione Partite per Formato</h3>
+                <div class="pie-chart-container">
+                    <canvas id="chartFormatUsage"></canvas>
+                </div>
+                <p class="chart-note">Senza considerare il Formato Piramide</p>
+            </div>
+
+            <div class="chart-card">
+                <h3>Percentuale di Successo vs Bicchieri in campo</h3>
+                <div class="chart-wrapper">
+                    <canvas id="chartCupsGeneral"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card" style="grid-column: 1 / -1;">
+                <h3>Successo per Formato</h3>
+                
+                <div class="chart-wrapper chart-format-large">
+                    <canvas id="chartCupsByFormat"></canvas>
+                </div>
+                
+                <p class="chart-note">Confronto delle curve per ogni schema.</p>
+            </div>
+        </div>
+    </div>
+
+    {% if format_3d_data %}
+    <div class="bottom-widgets-container">
+        <h2 class="section-title">🗾 Mappe di Calore 3D</h2>
+        <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">
+            Che bicchiere prendi di più in ogni Formato?
+        </p>
+
+        <div class="stats-grid">
+            {% for fmt_name, data_points in format_3d_data.items() %}
+            <div class="chart-card">
+                <h3>{{ fmt_name }}</h3>
+                <div id="heatmap-{{ fmt_name|replace(' ', '-') }}" class="echart-container"></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bottom-widgets-container">
+        <p style="text-align: center; color: #e74c3c; padding: 20px;">⚠️ Nessun dato 3D disponibile. Assicurati di aver registrato colpi andati a segno.</p>
+    </div>
+    {% endif %}
+
+    <div class="bottom-navigation">
+        <div class="nav-buttons-container">
+            <a href="{{ url_for('main.grafici_home') }}" class="btn-nav extra">
+                🏠 Grafici Principali
+            </a>
+            <a href="{{ url_for('main.grafici_extra') }}" class="btn-nav extra">
+                🚀 Statistiche Extra
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+
+    <script>
+        // Inizializzazione dati globale
+        window.formatData = {
+            rawStats: {{ stats_data | tojson }},
+            format3D: {{ format_3d_data | tojson }},
+            successByCups: {{ success_by_cups | tojson }}
+        };
+    </script>
+
+    <script src="{{ url_for('static', filename='js/grafici/grafici_formati.js') }}"></script>
+{% endblock %}

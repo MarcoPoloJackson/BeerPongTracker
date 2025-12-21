@@ -57,13 +57,13 @@
 
         {# 4. BOTTONI DI USCITA #}
         <div style="margin-top: 30px;">
-            {# Bottone Rivincita #}
-            <a href="{{ url_for('main.rematch', match_id=defaults.match_id if defaults.match_id else 0) }}" class="btn-result btn-rematch">
+            {# Bottone Rivincita nel tuo overlay #}
+            <a href="{{ url_for('main.rematch', match_id=defaults.match_id) }}" class="btn-result btn-rematch">
                 🔄 RIVINCITA
             </a>
             <br>
             {# Bottone Esci #}
-            <a href="{{ url_for('main.select_player') }}" class="btn-result btn-exit">
+            <a href="{{ url_for('main.home') }}" class="btn-result btn-exit">
                 Esci al Menu
             </a>
         </div>

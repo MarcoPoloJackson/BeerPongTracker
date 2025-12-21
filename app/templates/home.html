@@ -3,92 +3,186 @@
 {% block title %}Sala Giochi - Beer Pong{% endblock %}
 
 {% block styles %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    {# STILI HOME #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home/home.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home/tavoli.css') }}">
 {% endblock %}
 
 {% block content %}
-    <div class="container home-container">
-        <h1 class="page-title">🍺 Beer Pong Arena</h1>
-        <p class="page-subtitle">Seleziona il tuo nome per entrare in partita</p>
 
-        <div class="action-bar">
-            <a href="{{ url_for('main.setup_match') }}" class="btn-main btn-new">
-                ＋ Nuovo Tavolo
+    {# --- MACRO SLOT GIOCATORE (CORRETTA: ORA ACCETTA 'players' COME ARGOMENTO) --- #}
+    {% macro render_slot(match, slot_key, score, players) %}
+        {% set player = match[slot_key] %}
+        
+        {# Verifica se l'utente corrente è già occupato #}
+        {# Nota: busy_players e current_user sono globali speciali, spesso si vedono, ma per sicurezza usiamo players per i dati #}
+        {% set am_i_busy = current_user in busy_players %}
+        {% set is_me = (player == current_user) %}
+
+        <div class="slot-box 
+            {% if player %}filled{% else %}empty{% endif %} 
+            {% if is_me %}my-seat{% endif %}" 
+            
+            {% if not player %}
+                {% if am_i_busy %}
+                    onclick="openModal('{{ match.id }}', '{{ slot_key }}')"
+                    style="cursor: pointer;" title="Assegna un altro giocatore"
+                {% else %}
+                    onclick="instantJoin('{{ match.id }}', '{{ slot_key }}', '{{ current_user }}')"
+                    style="cursor: pointer;" title="Siediti qui"
+                {% endif %}
+            {% else %}
+                style="cursor: default;"
+            {% endif %}
+        >
+
+            {% if player %}
+                {# --- CASO 1: OCCUPATO --- #}
+                {# FIX: Usiamo la lista 'players' passata come argomento #}
+                {% set found_p = players|selectattr("name", "equalto", player)|list %}
+                {% set p_obj = found_p[0] if found_p else None %}
+                
+                <a href="{{ url_for('main.index', player_name=player) }}" class="player-link" title="{{ player }}">
+                    <span class="mini-avatar">
+                        {# Mostra l'icona se il giocatore ne ha una, altrimenti l'iniziale #}
+                        {% if p_obj and p_obj.icon %}
+                            {{ p_obj.icon }}
+                        {% else %}
+                            {{ player[:1] | upper }}
+                        {% endif %}
+                    </span>
+                    <span class="player-name-text">
+                        {{ player }}
+                        {% if is_me %}<span style="opacity:0.6; font-size:0.8em; margin-left:4px;">(Tu)</span>{% endif %}
+                    </span>
+                </a>
+                
+                <button class="btn-kick" title="Rimuovi" 
+                   onclick="event.stopPropagation(); openKickModal('{{ player }}', '{{ url_for('main.remove_player_slot', match_id=match.id, slot=slot_key) }}');">
+                    &times;
+                </button>
+
+            {% else %}
+                {# --- CASO 2: VUOTO --- #}
+                {% if am_i_busy %}
+                    <button class="btn-join">＋ Assegna</button>
+                {% else %}
+                    <button class="btn-join">＋ Siediti</button>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endmacro %}
+
+
+    <div class="container home-container">
+        
+        {# --- HEADER UTENTE --- #}
+        <div class="dashboard-header">
+            {# Logica sicura per trovare l'utente corrente #}
+            {% set found_me = players|selectattr("name", "equalto", current_user)|list %}
+            {% set me = found_me[0] if found_me else None %}
+
+            <a href="{{ url_for('main.icon_page') }}" class="player-identity" style="text-decoration:none; color:inherit;" title="Cambia Icona">
+                <div class="identity-avatar">
+                    {% if me and me.icon %}
+                        {{ me.icon }}
+                    {% else %}
+                        {{ current_user[:1] | upper }}
+                    {% endif %}
+                </div>
+                
+                <div class="identity-info">
+                    <span class="id-label">Accesso effettuato come</span>
+                    <span class="id-name">
+                        {{ current_user }} 
+                        <span style="font-size:0.8em; opacity:0.5; margin-left:5px;">✏️</span>
+                    </span>
+                </div>
             </a>
-            <a href="{{ url_for('main.manage_players') }}" class="btn-main btn-manage">
-                👥 Gestione Giocatori
-            </a>
+
+            <div class="header-controls">
+                <form action="{{ url_for('main.toggle_edit') }}" method="POST" class="toggle-form">
+                    <label class="edit-toggle-wrapper">
+                        <input type="checkbox" onchange="this.form.submit()" {% if me and me.edit %}checked{% endif %}>
+                        <div class="toggle-visual"><span class="toggle-knob"></span></div>
+                        <span class="toggle-label-text">Condividi</span>
+                    </label>
+                </form>
+                <a href="{{ url_for('main.logout') }}" class="btn-logout">
+                    <span class="logout-icon">⏻</span> Logout
+                </a>
+            </div>
         </div>
 
-        <h2 class="section-label">🔴 LIVE MATCHES</h2>
+        <h1 class="page-title">🍺 Beer Pong Arena</h1>
+        <p class="page-subtitle">Scegli un tavolo o creane uno nuovo</p>
+
+        {# --- ACTION BAR --- #}
+        <div class="action-bar">
+            <a href="{{ url_for('main.create_match_quick') }}" class="btn-main btn-new">＋ Crea Tavolo Vuoto</a>
+            <a href="{{ url_for('main.grafici_home') }}" class="btn-main btn-manage">📊 GRAFICI</a>
+        </div>
+
+        <h2 class="section-label">🔴 TAVOLI ATTIVI</h2>
         
         {% if matches_data %}
             <div class="matches-grid">
                 {% for item in matches_data %}
-                    
-                    {% set mode_class = '' %}
-                    {% set badge_text = 'IN CORSO' %}
+                    {% set m = item.match %}
+                    {% set badge_text = 'IN PREPARAZIONE' %}
+                    {% set status_class = 'prep' %}
 
-                    {# 1. Controllo TIRI SALVEZZA (Redemption) #}
-                    {% if 'redemption' in item.match.status %}
-                        {% set mode_class = 'redemption-mode' %}
-                        {% set badge_text = '🔥 TIRI SALVEZZA 🔥' %}
-                    
-                    {# 2. Controllo OVERTIME (Ora guarda il campo 'mode' del DB) #}
-                    {% elif item.match.mode == 'overtime' %}
-                        {% set mode_class = 'overtime-mode' %}
-                        {% set badge_text = '⚡ OVERTIME ⚡' %}
-                    
-                    {# 3. Partita Normale #}
-                    {% else %}
-                        {% set badge_text = '🟢 IN CORSO' %}
+                    {% if 'redemption' in m.status %}
+                        {% set badge_text = '🔥 SALVEZZA' %}
+                        {% set status_class = 'redemption' %}
+                    {% elif m.mode == 'overtime' %}
+                        {% set badge_text = '⚡ OVERTIME' %}
+                        {% set status_class = 'overtime' %}
+                    {% elif m.t1_p1 and m.t2_p1 %}
+                         {% set badge_text = '🟢 LIVE' %}
+                         {% set status_class = 'live' %}
                     {% endif %}
 
-                    <div class="match-card fade-in {{ mode_class }}">
+                    <div class="match-card fade-in {{ status_class }}">
                         <div class="match-header">
-                            <div class="match-title-group">
-                                <span>#{{ item.match.id }} {{ item.match.match_name }}</span>
-                                <a href="{{ url_for('main.setup_match', match_id=item.match.id) }}"
-                                   class="btn-edit-match" title="Modifica Tavolo">✏️</a>
-                                   <a href="{{ url_for('main.manual_override', match_id=item.match.id) }}"
-                                    class="btn-icon btn-manual" title="Gestione Manuale Avanzata">🛠️</a>
-                            </div>
-                            <span class="status-badge">{{ badge_text }}</span>
+                            <span class="match-title">Tavolo #{{ m.id }}</span>
+                            <span class="status-badge {{ status_class }}">{{ badge_text }}</span>
+
+                            <a href="{{ url_for('main.manual_override', match_id=m.id) }}" class="btn-manual-mini" title="Gestione Manuale">
+                                🛠️
+                            </a>
                         </div>
 
                         <div class="match-body">
                             <div class="team-col">
-                                <div class="team-name team-blue">🔵 BLU</div>
-                                {% if item.match.t1_p1 %}
-                                    <a href="{{ url_for('main.index', player_name=item.match.t1_p1) }}" class="player-link">
-                                        👤 {{ item.match.t1_p1 }}
-                                    </a>
-                                {% endif %}
-                                {% if item.match.t1_p2 %}
-                                    <a href="{{ url_for('main.index', player_name=item.match.t1_p2) }}" class="player-link">
-                                        👤 {{ item.match.t1_p2 }}
-                                    </a>
-                                {% endif %}
+                                <div class="team-header team-blue">🔵 TEAM BLU</div>
+                                {# --- QUI PASSIAMO 'players' ALLA MACRO --- #}
+                                {{ render_slot(m, 't1_p1', item.score_t1, players) }}
+                                {{ render_slot(m, 't1_p2', item.score_t1, players) }}
                             </div>
 
                             <div class="live-score-display">
-                                <div class="score-number blue">{{ item.score_t1 }}</div>
-                                <div class="score-sep">-</div>
-                                <div class="score-number red">{{ item.score_t2 }}</div>
+                                {% set is_table_empty = not (m.t1_p1 or m.t1_p2 or m.t2_p1 or m.t2_p2) %}
+
+                                {% if is_table_empty %}
+                                    <button class="btn-delete-table" 
+                                            onclick="openDeleteTableModal('{{ m.id }}', '{{ url_for('main.delete_match', match_id=m.id) }}')"
+                                            title="Elimina Tavolo Vuoto">
+                                        🗑️
+                                    </button>
+                                {% else %}
+                                    <div class="score-number blue">{{ item.score_t1 }}</div>
+                                    <div class="score-sep"></div>
+                                    <div class="score-number red">{{ item.score_t2 }}</div>
+                                {% endif %}
                             </div>
 
                             <div class="team-col">
-                                <div class="team-name team-red">🔴 ROSSA</div>
-                                {% if item.match.t2_p1 %}
-                                    <a href="{{ url_for('main.index', player_name=item.match.t2_p1) }}" class="player-link">
-                                        👤 {{ item.match.t2_p1 }}
-                                    </a>
-                                {% endif %}
-                                {% if item.match.t2_p2 %}
-                                    <a href="{{ url_for('main.index', player_name=item.match.t2_p2) }}" class="player-link">
-                                        👤 {{ item.match.t2_p2 }}
-                                    </a>
-                                {% endif %}
+                                {# --- QUI PASSIAMO 'players' ALLA MACRO --- #}
+                                {{ render_slot(m, 't2_p1', item.score_t2, players) }}
+                                {{ render_slot(m, 't2_p2', item.score_t2, players) }}
+                                <div class="team-header team-red" style="margin-top: 5px;">🔴 TEAM ROSSO</div>
                             </div>
                         </div>
                     </div>
@@ -96,35 +190,34 @@
             </div>
         {% else %}
             <div class="empty-state">
-                <span class="empty-icon">😴</span>
-                <strong>Nessuna partita attiva.</strong><br>
-                <small>Clicca "Nuovo Tavolo" per iniziare!</small>
+                <span class="empty-icon">🍺</span>
+                <strong>Sala vuota!</strong><br>
+                <small>Crea il primo tavolo per iniziare la serata.</small>
             </div>
         {% endif %}
 
-
         <div style="margin-top: 60px;"></div>
-        <h2 class="section-label">📜 MATCH HISTORY (24h)</h2>
+        <h2 class="section-label">📜 STORICO 24H</h2>
 
         {% if grouped_history %}
             <div class="history-grid">
                 {% for key, matches in grouped_history.items() %}
-                    {% set latest = matches[0] %}
+                    {% set reference = matches[0].obj %}
                     
                     <div class="series-card fade-in">
-                        
                         <div class="series-header">
                             <div class="series-vs">
-                                <span class="team-blue-text">
-                                    {{ latest.obj.t1_p1 }} {% if latest.obj.t1_p2 %}& {{ latest.obj.t1_p2 }}{% endif %}
-                                </span>
-                                <span class="vs-text">VS</span>
-                                <span class="team-red-text">
-                                    {{ latest.obj.t2_p1 }} {% if latest.obj.t2_p2 %}& {{ latest.obj.t2_p2 }}{% endif %}
-                                </span>
+                                <div class="team-names-hist">
+                                    <span class="team-blue-text">
+                                        {{ reference.t1_p1 or '?' }} {% if reference.t1_p2 %}& {{ reference.t1_p2 }}{% endif %}
+                                    </span>
+                                    <span class="vs-divider">VS</span>
+                                    <span class="team-red-text">
+                                        {{ reference.t2_p1 or '?' }} {% if reference.t2_p2 %}& {{ reference.t2_p2 }}{% endif %}
+                                    </span>
+                                </div>
                             </div>
-                            
-                            <a href="{{ url_for('main.rematch_create', old_match_id=latest.obj.id) }}" class="btn-history-rematch">
+                            <a href="{{ url_for('main.rematch', match_id=reference.id) }}" class="btn-history-rematch" title="Rigioca">
                                 🔄 RIGIOCA
                             </a>
                         </div>
@@ -132,23 +225,14 @@
                         <div class="history-list">
                             {% for m in matches %}
                                 <div class="history-row {% if m.winner == 't1' %}win-blue{% elif m.winner == 't2' %}win-red{% endif %}">
-                                    
                                     <div class="history-time">{{ m.time_ago }}</div>
-                                    
-                                    <div class="history-score">
-                                        <div class="score-box blue {% if m.winner == 't1' %}winner{% endif %}">
-                                            <span class="cup-icon">🍺</span> {{ m.t1_score }}
-                                        </div>
-                                        
-                                        <div class="score-divider"></div>
-                                        
-                                        <div class="score-box red {% if m.winner == 't2' %}winner{% endif %}">
-                                            {{ m.t2_score }} <span class="cup-icon">🍺</span>
-                                        </div>
+                                    <div class="history-score-box">
+                                        <span class="score-val blue {% if m.winner == 't1' %}winner{% endif %}">{{ m.t1_score }}</span>
+                                        <span class="score-dash">-</span>
+                                        <span class="score-val red {% if m.winner == 't2' %}winner{% endif %}">{{ m.t2_score }}</span>
                                     </div>
-
-                                    <div class="history-result-badge">
-                                        {% if m.winner == 't1' %}🔵 VINCE{% elif m.winner == 't2' %}🔴 VINCE{% else %}PAREGGIO{% endif %}
+                                    <div class="history-winner-label">
+                                        {% if m.winner == 't1' %}🔵 BLU{% elif m.winner == 't2' %}🔴 ROSSI{% else %}PARI{% endif %}
                                     </div>
                                 </div>
                             {% endfor %}
@@ -156,12 +240,62 @@
                     </div>
                 {% endfor %}
             </div>
-        {% else %}
-            <p style="text-align: center; color: #999; margin-top: 30px;">
-                Nessuna partita conclusa nelle ultime 24 ore.
-            </p>
         {% endif %}
     </div>
 
+    {# --- MODALI (Rimasti invariati) --- #}
+    <div id="playerModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content">
+            <h3>Scegli Giocatore</h3>
+            <p id="modalSlotName" style="color:#666; font-size:0.9em; margin-bottom:10px;"></p>
+            <form id="assignForm" method="POST" action="{{ url_for('main.assign_slot') }}">
+                <input type="hidden" name="match_id" id="modalMatchId">
+                <input type="hidden" name="slot" id="modalSlot">
+                <input type="hidden" name="player_name" id="modalPlayerName">
+                <div class="player-grid-modal">
+                {% for p in players %}
+                    {% set is_busy = p.name in busy_players %}
+                    <div class="modal-chip {% if is_busy %}busy{% endif %}" 
+                         {% if not is_busy %}onclick="submitSelection('{{ p.name }}')"{% endif %}>
+                        {{ p.name }}
+                        {% if is_busy %}<span style="font-size: 0.8em;">(In gioco) 🔒</span>{% endif %}
+                    </div>
+                {% endfor %}
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button onclick="document.getElementById('playerModal').style.display='none'">ANNULLA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="kickModal" class="modal-overlay" onclick="closeKickModal(event)">
+        <div class="modal-content" style="max-width: 400px; text-align: center;"> 
+            <div class="kick-header-icon">⚠️</div>
+            <h3>Rimuovere Giocatore?</h3>
+            <p class="kick-message">Sei sicuro di voler rimuovere <strong id="kickPlayerName">PLAYER</strong> dal tavolo?</p>
+            <div class="modal-actions">
+                <button class="btn-modal btn-cancel" onclick="closeKickModal(null, true)">Annulla</button>
+                <button class="btn-modal btn-confirm-kick" onclick="confirmKick()">Rimuovi</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteTableModal" class="modal-overlay" onclick="closeDeleteTableModal(event)">
+        <div class="modal-content" style="max-width: 400px; text-align: center;"> 
+            <div class="kick-header-icon" style="animation: none; transform: scale(1.2);">🗑️</div>
+            <h3>Eliminare Tavolo?</h3>
+            <p class="kick-message">Stai per smantellare il <strong id="delTableName">Tavolo #ID</strong>.<br>Azione irreversibile.</p>
+            <div class="modal-actions">
+                <button class="btn-modal btn-cancel" onclick="closeDeleteTableModal(null, true)">Annulla</button>
+                <button class="btn-modal btn-confirm-kick" onclick="confirmTableDelete()">Elimina</button>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script>window.currentUserName = "{{ session.get('player_name', '') }}";</script>
     <script src="{{ url_for('static', filename='js/home.js') }}"></script>
 {% endblock %}

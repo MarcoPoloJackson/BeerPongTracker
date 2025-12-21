@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Grafici Extra - {{ player_name }}{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/grafici/grafici_extra.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="stats-container">
+    
+    <div class="stats-header">
+        {# --- HEADER CON ICONA --- #}
+        <div class="header-title-wrapper">
+            
+            {# Logica sicura per trovare l'icona #}
+            {% set p_obj = players|selectattr("name", "equalto", player_name)|first if players is defined else None %}
+            
+            <div class="header-avatar-large">
+                {% if p_obj and p_obj.icon %}
+                    {{ p_obj.icon }}
+                {% else %}
+                    {{ player_name[:1]|upper }}
+                {% endif %}
+            </div>
+            
+            <h1>Statistiche Extra di {{ player_name }}</h1>
+        </div>
+        
+        <a href="{{ url_for('main.home') }}" class="btn-back">⬅ Torna alla Home</a>
+    </div>
+
+    <div class="top-widgets" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 40px;">
+        
+        <div class="widget-insight-mini">
+            <span class="label">📈 Trend Successo (Oggi)</span>
+            {% if comparison.played_today %}
+                {% if comparison.delta_success >= 0 %}
+                    <div class="value" style="color: #2ecc71;">+{{ comparison.delta_success }}%</div>
+                    <div class="badge" style="background: rgba(46, 204, 113, 0.2); color: #27ae60;">Miglioramento</div>
+                {% else %}
+                    <div class="value" style="color: #e74c3c;">{{ comparison.delta_success }}%</div>
+                    <div class="badge" style="background: rgba(231, 76, 60, 0.2); color: #c0392b;">Peggioramento</div>
+                {% endif %}
+            {% else %}
+                <div class="value">-</div>
+                <div class="badge">Nessun dato oggi</div>
+            {% endif %}
+        </div>
+
+        <div class="widget">
+            <span>🎯 Media Tiri / Match</span>
+            <strong>{{ shot_metrics.avg_shots_per_match }}</strong>
+            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                Oggi: {{ shot_metrics.avg_shots_daily }}
+            </div>
+        </div>
+
+        <div class="widget">
+            <span>🥵 Partita più Lunga</span>
+            <strong>{{ shot_metrics.max_shots_match_hist }} Tiri</strong>
+            <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                Oggi: {{ shot_metrics.max_shots_match_daily }}
+            </div>
+        </div>
+
+        <div class="widget-insight-mini">
+            <span class="label">🧂 Trend Bordi (Oggi)</span>
+            {% if comparison.played_today %}
+                {% if comparison.delta_rim >= 0 %}
+                    <div class="value" style="color: #3498db;">+{{ comparison.delta_rim }}%</div>
+                    <div class="badge" style="background: rgba(52, 152, 219, 0.2); color: #2980b9;">Più Sfiga</div>
+                {% else %}
+                    <div class="value" style="color: #f39c12;">{{ comparison.delta_rim }}%</div>
+                    <div class="badge" style="background: rgba(243, 156, 18, 0.2); color: #d35400;">Meno Sfiga</div>
+                {% endif %}
+            {% else %}
+                <div class="value">-</div>
+                <div class="badge">Nessun dato oggi</div>
+            {% endif %}
+        </div>
+
+    </div> 
+    
+    <div class="stats-grid">
+        <div class="chart-card">
+            <h3>📍 Successo per Postazione</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartPositionSuccess"></canvas>
+            </div>
+            <p class="chart-note">Da dove tiri meglio?</p>
+        </div>
+
+        <div class="chart-card">
+            <h3>🎯 Successo per Postazione vs Bicchieri</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartPosByCups"></canvas>
+            </div>
+            <p class="chart-note">Efficacia delle posizioni in base al numero di bicchieri avversari</p>
+        </div>
+
+        <div class="chart-card">
+            <h3>🥤 Successo per Bevanda</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartDrinkSuccess"></canvas>
+            </div>
+            <p class="chart-note">Quale bevanda ti rende più preciso?</p>
+        </div>
+
+        <div class="chart-card">
+            <h3>⚖️ Differenziale Bicchieri</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartCupGap"></canvas>
+            </div>
+            <p class="chart-note">Verde (+): Vantaggio | Rosso (-): Svantaggio. Mostra la differenza dei bicchieri in campo in base numero di tiro</p>
+        </div>
+
+        <div class="chart-card">
+            <h3>🤝 Win Rate per Compagno</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartPartnerWinRate"></canvas>
+            </div>
+            <p class="chart-note">I compagni con cui vinci di più</p>
+        </div>
+
+        <div class="chart-card">
+            <h3>⚔️ Loss Rate contro Avversario</h3>
+            <div class="chart-wrapper">
+                <canvas id="chartEnemyLossRate"></canvas>
+            </div>
+            <p class="chart-note">Gli avversari contro cui perdi di più</p>
+        </div>
+    </div>
+
+    <div class="chart-card" style="grid-column: 1 / -1; margin-top: 20px;">
+        <h3>📈 Efficacia per Numero Tiro</h3>
+        <div class="chart-wrapper tall-chart">
+            <canvas id="chartShotNumSuccess"></canvas>
+        </div>
+        <p class="chart-note">Precisione in base al numero di tiro nella partita</p>
+    </div>
+
+    <div class="bottom-widgets-container">
+        <h2 class="section-title">🧐 Curiosità</h2>
+        <div class="insights-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+            
+            <div class="widget-insight-mini">
+                <span class="label">📍 Posizione Top</span>
+                <div class="value">{{ insights.best_pos.split(' / ') | first }}</div>
+                <div class="badge">{{ insights.best_pos_rate }}% Win</div>
+            </div>
+
+            <div class="widget-insight-mini">
+                <span class="label">🤝 Partner Ideale</span>
+                <div class="value">{{ insights.best_partner.split(' / ') | first }}</div>
+                <div class="badge">{{ insights.best_partner_rate }}% Win</div>
+            </div>
+
+            <div class="widget-insight-mini danger">
+                <span class="label">💀 Da Evitare</span>
+                <div class="value">{{ insights.worst_enemy.split(' / ') | first }}</div>
+                <div class="badge">{{ insights.worst_enemy_rate }}% Loss</div>
+            </div>
+
+            <div class="widget-insight-mini">
+                <span class="label">🪄 Tiro Magico</span>
+                <div class="value">{{ insights.best_shot_num.split(' / ') | first }}°</div>
+                <div class="badge">{{ insights.best_shot_rate }}% Acc</div>
+            </div>
+
+            <div class="widget-insight-mini">
+                <span class="label">🍹 Drink Boost</span>
+                <div class="value">{{ insights.best_drink.split(' / ') | first }}</div>
+                <div class="badge">{{ insights.best_drink_rate }}% Acc</div>
+            </div>
+            
+            <div class="widget-insight-mini">
+                <span class="label">📅 Giornata Migliore</span>
+                <div class="value">{{ insights.best_day_date }}</div>
+                <div class="badge">{{ insights.best_day_rate }}% Succ</div>
+            </div>
+
+            <div class="widget">
+                <span>🧱 Serie di Bordi più lunga</span>
+                <strong>{{ streaks.rim_streak_hist }}</strong>
+                <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                    Oggi: {{ streaks.rim_streak_daily }}
+                </div>
+            </div>
+
+            <div class="widget">
+                <span>💨 Serie di Miss più lunga</span>
+                <strong>{{ streaks.miss_streak_hist }}</strong>
+                <div style="font-size: 0.8em; opacity: 0.8; margin-top: 5px;">
+                    Oggi: {{ streaks.miss_streak_daily }}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="bottom-navigation">
+        <div class="nav-buttons-container">
+            <a href="{{ url_for('main.grafici_home') }}" class="btn-nav extra">
+                🏠 Grafici Principali
+            </a>
+            <a href="{{ url_for('main.grafici_formati') }}" class="btn-nav extra">
+                📊 Analisi Formati
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+    <script>
+        window.extraData = {
+            rawStats: {{ stats_data | tojson }},
+            partnerships: {{ partnerships | tojson }},
+            shotMetrics: {{ shot_metrics | tojson }},
+            posByCups: {{ pos_by_cups | tojson }}
+        };
+    </script>
+
+    <script src="{{ url_for('static', filename='js/grafici/grafici_extra.js') }}"></script>
+{% endblock %}

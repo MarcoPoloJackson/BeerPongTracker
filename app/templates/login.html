@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Beer Pong Tracker{% endblock %}
+{% block body_class %}login-page-white{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="login-container-white">
+    
+    <div class="login-header">
+        <h1>🍺 BEER PONG TRACKER 🏓</h1>
+    </div>
+
+    {# --- FLASH MESSAGES --- #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('main.handle_user_action') }}" method="POST" autocomplete="off" class="white-login-form">
+        <input type="hidden" name="action_type" id="actionType" value="login">
+        
+        <div class="white-input-group">
+            
+            <div class="input-wrapper-rounded name-container" style="flex: 3;">
+                
+                <input type="text" id="ghostInput" class="rounded-input ghost-text" readonly tabindex="-1">
+                
+                <input type="text" name="player_name" id="mainNameInput" class="rounded-input real-text" 
+                       placeholder="Cerca o crea nome..." autocomplete="off" required>
+            </div>
+
+            <div class="input-wrapper-rounded" style="flex: 2;">
+                <input type="password" name="password" id="mainPasswordInput" class="rounded-input" placeholder="Password..." required>
+            </div>
+
+            <button type="submit" id="mainActionBtn" class="main-action-btn-white">Entra ➔</button>
+            <button type="button" id="toggleModeBtn" class="mode-toggle-btn-white" title="Cambia modalità">＋</button>
+        </div>
+    </form>
+
+    <div class="divider-white"></div>
+    <h2 class="section-title-white">Giocatori Registrati</h2>
+    
+    <div id="playersData" data-names='{{ players|map(attribute="name")|list|tojson }}' style="display:none;"></div>
+
+    <div class="players-grid-white">
+        {% for player in players %}
+        <div class="player-card-white" onclick="quickFill('{{ player.name }}')">
+            <div class="card-left-section">
+                
+                {# --- LOGICA AVATAR AGGIORNATA --- #}
+                <div class="player-avatar">
+                    {% if player.icon %}
+                        {{ player.icon }}
+                    {% else %}
+                        {{ player.name[:1] | upper }}
+                    {% endif %}
+                </div>
+                {# ------------------------------- #}
+
+                <div class="player-name-wrapper"><span class="player-name">{{ player.name }}</span></div>
+            </div>
+            <button type="button" class="btn-delete-white" onclick="openDeleteModal(event, '{{ player.id }}', '{{ player.name }}')">&times;</button>
+        </div>
+        {% else %}
+        <div class="empty-state-white">Nessun giocatore. Crea il primo qui sopra!</div>
+        {% endfor %}
+    </div>
+</div>
+
+{# --- MODALE SICUREZZA --- #}
+<div id="deleteModal" class="modal-overlay-white">
+    <div class="modal-content-white">
+        <span class="close-modal" onclick="closeDeleteModal()">&times;</span>
+        <h3 class="modal-title-danger">Elimina Giocatore</h3>
+        <p>Inserisci la password di <b id="delPlayerName"></b> per confermare.</p>
+        <form id="deleteForm" method="POST" action="">
+            <div class="input-wrapper-rounded modal-input">
+                <input type="password" name="password_confirm" id="confirmDeletePassword" class="rounded-input" placeholder="Password richiesta..." required>
+            </div>
+            <button type="submit" class="modal-btn-danger">ELIMINA PER SEMPRE</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+{% endblock %}

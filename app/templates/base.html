@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Beer Pong Tracker{% endblock %}</title>
-
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-
     {% block styles %}{% endblock %}
 </head>
 
+{# QUESTA RIGA È FONDAMENTALE: prende la classe 'preload' dal figlio #}
 <body class="{% block body_class %}{% endblock %}">
 
     {% block content %}{% endblock %}

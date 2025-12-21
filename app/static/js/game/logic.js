@@ -385,3 +385,126 @@ function updateInstructionText() {
         }
     }
 }
+
+/* ==========================================
+   4. LOGIC.JS (ADDITIONS)
+   ========================================== */
+
+// --- A. LOGICA PULSANTE SQUADRA ---
+let teamWindow = null; // Variabile per tracciare la finestra popup
+
+function checkTeammateStatus() {
+    // Usa le variabili definite nell'HTML
+    if (!window.teammateName) return;
+
+    fetch(`/check_teammate_edit/${window.teammateName}`)
+        .then(response => response.json())
+        .then(data => {
+            const btn = document.getElementById('team-btn-container');
+            const badge = document.getElementById('team-status-badge');
+            const errorMsg = document.getElementById('team-error-msg');
+
+            if (!btn) return;
+
+            if (data.can_edit) {
+                // Abilitato
+                btn.classList.remove('disabled-card');
+                btn.classList.add('normal-card');
+                btn.setAttribute('data-enabled', 'true');
+                if(badge) {
+                    badge.innerText = "📱 APRI VISTA DOPPIA";
+                    badge.classList.add('active-green');
+                }
+                if(errorMsg) errorMsg.style.display = 'none';
+            } else {
+                // Disabilitato
+                btn.classList.add('disabled-card');
+                btn.classList.remove('normal-card');
+                btn.setAttribute('data-enabled', 'false');
+                if(badge) {
+                    badge.innerText = "🔒 BLOCCATO";
+                    badge.classList.remove('active-green');
+                }
+                if(errorMsg) errorMsg.style.display = 'block';
+            }
+        })
+        .catch(err => console.error("Errore check compagno:", err));
+}
+
+window.handleTeamClick = function() {
+    const btn = document.getElementById('team-btn-container');
+    if (!btn) return;
+
+    const isEnabled = btn.getAttribute('data-enabled') === 'true';
+
+    if (!isEnabled) {
+        // Effetto shake se clicchi quando bloccato
+        btn.style.animation = "shake 0.3s";
+        setTimeout(() => btn.style.animation = "", 300);
+        return; 
+    }
+
+    // APERTURA IN NUOVA SCHEDA (Target _blank)
+    // Questo permette all'utente di usare il tasto Fullscreen che abbiamo messo in team_view.html
+    if (window.teamViewUrl) {
+        window.open(window.teamViewUrl, '_blank');
+    }
+};
+
+// --- B. LOGICA COLORE BEVANDA ---
+function updateDrinkColor() {
+    const drinkInput = document.getElementById('bevanda');
+    if (!drinkInput) return;
+
+    const text = drinkInput.value.toLowerCase().trim();
+    
+    // Rimuove classi precedenti
+    drinkInput.classList.remove(
+        'drink-water', 'drink-beer', 'drink-spritz', 
+        'drink-wine', 'drink-jager', 'drink-coke', 
+        'drink-ginlemon', 'drink-gintonic'
+    );
+
+    // Assegna classe
+    if (text.includes('acqua')) drinkInput.classList.add('drink-water');
+    else if (text.includes('birra') || text.includes('cerveza')) drinkInput.classList.add('drink-beer');
+    else if (text.includes('spritz') || text.includes('aperol') || text.includes('campari')) drinkInput.classList.add('drink-spritz');
+    else if (text.includes('vino') || text.includes('rosso') || text.includes('bianco')) drinkInput.classList.add('drink-wine');
+    else if (text.includes('jager') || text.includes('bomb')) drinkInput.classList.add('drink-jager');
+    else if (text.includes('coca') || text.includes('pepsi')) drinkInput.classList.add('drink-coke');
+    else if (text.includes('gin lemon') || text.includes('lemon')) drinkInput.classList.add('drink-ginlemon');
+    else if (text.includes('gin tonic') || text.includes('tonic') || text.includes('gin')) drinkInput.classList.add('drink-gintonic');
+}
+
+// --- C. INIZIALIZZAZIONE ---
+document.addEventListener("DOMContentLoaded", function() {
+    
+    // 1. Avvia controllo compagno (polling ogni 5s)
+    if (window.teammateName) {
+        checkTeammateStatus();
+        setInterval(checkTeammateStatus, 5000);
+    }
+
+    // 2. Avvia controllo bevanda
+    const drinkInput = document.getElementById('bevanda');
+    if (drinkInput) {
+        drinkInput.addEventListener('input', updateDrinkColor);
+        updateDrinkColor();
+    }
+
+    // 3. Animazione Formato
+    if (typeof triggerAnimation !== 'undefined' && triggerAnimation === true && typeof playFormatAnimation === "function" && typeof serverOppFormat !== 'undefined') {
+        playFormatAnimation(serverOppFormat);
+    }
+
+    // 4. WebSocket Auto-Refresh
+    if (typeof io !== 'undefined' && typeof myMatchId !== 'undefined') {
+        const socket = io();
+        socket.on('partita_aggiornata', function(data) {
+            if (data.match_id === myMatchId) {
+                console.log("Aggiornamento ricevuto! Ricarico...");
+                location.reload(); 
+            }
+        });
+    }
+});
