@@ -5,56 +5,88 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Beer Pong Arena: Home Loaded");
 
-    // ---------------------------------------------------------
     // 1. GESTIONE SCROLL (Resta dov'eri dopo il refresh)
-    // ---------------------------------------------------------
-    // Usiamo una chiave specifica per evitare conflitti con altre pagine
     const scrollPos = localStorage.getItem('homeScrollPos');
     if (scrollPos) {
         window.scrollTo(0, parseInt(scrollPos));
-        // Puliamo subito per evitare che lo scroll rimanga bloccato in futuro
         localStorage.removeItem('homeScrollPos');
     }
 
-    // Salva la posizione ogni volta che la pagina sta per essere scaricata
+    // Salva scroll prima di lasciare la pagina
     window.addEventListener('beforeunload', function() {
         localStorage.setItem('homeScrollPos', window.scrollY);
     });
 
-    // ---------------------------------------------------------
-    // 2. EVIDENZIA IL MIO POSTO (Green Highlight)
-    // ---------------------------------------------------------
-    if (window.currentUserName) {
-        // Cerchiamo specificamente il testo del nome dentro gli span dedicati
+    // 2. EVIDENZIA IL MIO POSTO
+    if (typeof window.currentUserName !== 'undefined' && window.currentUserName) {
         const nameElements = document.querySelectorAll('.player-name-text');
-        
         nameElements.forEach(el => {
-            // Se il testo dell'elemento corrisponde esattamente al nome utente loggato
             if (el.textContent.trim() === window.currentUserName) {
-                // Risaliamo alla casella contenitore (.slot-box)
                 const card = el.closest('.slot-box');
-                if (card) {
-                    card.classList.add('my-seat');
-                    console.log("Mio posto evidenziato con successo");
-                }
+                if (card) card.classList.add('my-seat');
             }
         });
     }
 
-    // ---------------------------------------------------------
-    // 3. ANIMAZIONI INGRESSO (Fade In)
-    // ---------------------------------------------------------
+    // 3. ANIMAZIONI INGRESSO
     const animatedElements = document.querySelectorAll('.fade-in');
     if (animatedElements.length > 0) {
         animatedElements.forEach((el, index) => {
             el.style.opacity = '0';
             el.style.transform = 'translateY(20px)';
             el.style.transition = 'opacity 0.5s cubic-bezier(0.215, 0.610, 0.355, 1.000), transform 0.5s cubic-bezier(0.215, 0.610, 0.355, 1.000)';
-            
             setTimeout(() => {
                 el.style.opacity = '1';
                 el.style.transform = 'translateY(0)';
-            }, index * 50); // 50ms di ritardo tra ogni elemento per un effetto fluido
+            }, index * 50);
+        });
+    }
+
+    // 4. AGGIORNAMENTO REAL-TIME (SOCKET.IO) - "SURGICAL UPDATE"
+    if (typeof io !== 'undefined') {
+        const socket = io();
+        
+        socket.on('partita_aggiornata', function(data) {
+            console.log("⚡ Aggiornamento tavolo #" + data.match_id);
+            
+            // 1. Identifichiamo il tavolo che è cambiato
+            const matchId = data.match_id;
+            const cardElement = document.getElementById(`table-card-${matchId}`);
+
+            if (cardElement) {
+                // 2. Chiediamo al server SOLO l'HTML aggiornato di questo tavolo
+                // Nota: Devi creare questa rotta in Python (vedi punto 3 sotto)
+                fetch(`/api/render_table/${matchId}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error("Errore network");
+                        return response.text();
+                    })
+                    .then(html => {
+                        // 3. Sostituiamo il vecchio HTML con quello nuovo
+                        cardElement.outerHTML = html;
+                        
+                        // 4. Ri-applichiamo eventuali evidenziazioni (il "mio posto")
+                        if (window.currentUserName) {
+                            // Cerchiamo nel NUOVO elemento appena inserito
+                            const newCard = document.getElementById(`table-card-${matchId}`);
+                            const nameElements = newCard.querySelectorAll('.player-name-text');
+                            nameElements.forEach(el => {
+                                if (el.textContent.trim() === window.currentUserName) {
+                                    el.closest('.slot-box').classList.add('my-seat');
+                                }
+                            });
+                        }
+                        console.log(`✅ Tavolo #${matchId} aggiornato senza reload.`);
+                    })
+                    .catch(err => {
+                        console.error("Errore update parziale, fallback su reload:", err);
+                        // Se qualcosa va storto, ricarichiamo la pagina per sicurezza
+                        location.reload();
+                    });
+            } else {
+                // Se non troviamo il tavolo (es. nuovo tavolo creato), ricarichiamo tutto
+                location.reload();
+            }
         });
     }
 });
@@ -64,27 +96,27 @@ document.addEventListener('DOMContentLoaded', function() {
    LOGICA GLOBALE (FUNZIONI ONCLICK)
    ========================================== */
 
-// Funzione helper per salvare lo scroll prima di azioni manuali
 function saveCurrentScroll() {
     localStorage.setItem('homeScrollPos', window.scrollY);
 }
 
-// 1. Funzione SIEDITI SUBITO
-function instantJoin(matchId, slot, playerName) {
+// 1. Funzione SIEDITI SUBITO (Click diretto sul posto vuoto)
+window.instantJoin = function(matchId, slot, playerName) {
+    console.log("Tentativo ingresso:", matchId, slot, playerName); // Debug
     const form = document.getElementById('assignForm');
     if (form) {
-        // Salva lo scroll prima di inviare il form
         saveCurrentScroll();
-        
         document.getElementById('modalMatchId').value = matchId;
         document.getElementById('modalSlot').value = slot;
         document.getElementById('modalPlayerName').value = playerName;
         form.submit();
+    } else {
+        console.error("Form di assegnazione non trovato!");
     }
-}
+};
 
 // 2. Funzione APRI MODALE (Per assegnare altri)
-function openModal(matchId, slot) {
+window.openModal = function(matchId, slot) {
     document.getElementById('modalMatchId').value = matchId;
     document.getElementById('modalSlot').value = slot;
 
@@ -94,36 +126,33 @@ function openModal(matchId, slot) {
         slotLabel.innerText = "Posto per Squadra " + teamName;
     }
     
+    // Resetta il campo nome
     document.getElementById('modalPlayerName').value = "";
     
-    // Mostra il modale
     const modal = document.getElementById('playerModal');
     if (modal) {
         modal.style.display = 'flex';
     }
-}
+};
 
 // 3. Funzione CHIUDI MODALE
-function closeModal(e) {
-    // Chiude se clicchi fuori dal contenuto (sull'overlay scuro)
+window.closeModal = function(e) {
     if (e.target.id === 'playerModal') {
         document.getElementById('playerModal').style.display = 'none';
     }
-}
+};
 
 // 4. Funzione INVIA SELEZIONE DAL MODALE
-function submitSelection(name) {
-    // Salva lo scroll prima del ricaricamento
+window.submitSelection = function(name) {
     saveCurrentScroll();
-    
     document.getElementById('modalPlayerName').value = name;
     document.getElementById('assignForm').submit();
-}
+};
 
-// 5. LISTENER GLOBALE PER TASTI AZIONE
-// Intercetta i click sui tasti "Rimuovi" (X) e "Rigioca" per salvare lo scroll
+// 5. LISTENER GLOBALE PER TASTI AZIONE (Kick e Rematch)
 document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('btn-kick') || e.target.classList.contains('btn-history-rematch')) {
+    // Gestione delegata per elementi dinamici
+    if (e.target.closest('.btn-kick') || e.target.closest('.btn-history-rematch')) {
         saveCurrentScroll();
     }
 });
@@ -131,57 +160,55 @@ document.addEventListener('click', function(e) {
 /* ==========================================
    GESTIONE MODALE KICK (RIMOZIONE)
    ========================================== */
+let kickTargetUrl = ""; 
 
-let kickTargetUrl = ""; // Variabile globale per memorizzare l'URL di rimozione
-
-function openKickModal(playerName, url) {
-    // 1. Imposta il nome nel testo
-    document.getElementById('kickPlayerName').innerText = playerName;
+window.openKickModal = function(playerName, url) {
+    const nameSpan = document.getElementById('kickPlayerName');
+    if(nameSpan) nameSpan.innerText = playerName;
     
-    // 2. Salva l'URL generato da Flask
     kickTargetUrl = url;
     
-    // 3. Mostra il modale
-    document.getElementById('kickModal').style.display = 'flex';
-}
+    const modal = document.getElementById('kickModal');
+    if(modal) modal.style.display = 'flex';
+};
 
-function closeKickModal(e, force = false) {
-    // Chiude se clicco fuori (overlay) o se forzato dal tasto Annulla
+window.closeKickModal = function(e, force = false) {
     if (force || e.target.id === 'kickModal') {
         document.getElementById('kickModal').style.display = 'none';
     }
-}
+};
 
-function confirmKick() {
+window.confirmKick = function() {
     if (kickTargetUrl) {
-        // Salva lo scroll per non tornare in cima
         saveCurrentScroll();
-        // Esegue il redirect all'URL di rimozione
         window.location.href = kickTargetUrl;
     }
-}
+};
 
 /* ==========================================
    GESTIONE MODALE ELIMINA TAVOLO
    ========================================== */
-
 let deleteTableTargetUrl = "";
 
-function openDeleteTableModal(matchId, url) {
-    document.getElementById('delTableName').innerText = "Tavolo #" + matchId;
+window.openDeleteTableModal = function(matchId, url) {
+    const tName = document.getElementById('delTableName');
+    if(tName) tName.innerText = "Tavolo #" + matchId;
+    
     deleteTableTargetUrl = url;
-    document.getElementById('deleteTableModal').style.display = 'flex';
-}
+    
+    const modal = document.getElementById('deleteTableModal');
+    if(modal) modal.style.display = 'flex';
+};
 
-function closeDeleteTableModal(e, force = false) {
+window.closeDeleteTableModal = function(e, force = false) {
     if (force || e.target.id === 'deleteTableModal') {
         document.getElementById('deleteTableModal').style.display = 'none';
     }
-}
+};
 
-function confirmTableDelete() {
+window.confirmTableDelete = function() {
     if (deleteTableTargetUrl) {
         saveCurrentScroll();
         window.location.href = deleteTableTargetUrl;
     }
-}
+};

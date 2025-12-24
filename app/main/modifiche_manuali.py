@@ -5,6 +5,8 @@ from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 import json
+from app import socketio
+
 
 # --- ROTTA TEAM MODE AGGIORNATA ---
 @bp.route('/team_mode/<player_name>')
@@ -50,6 +52,30 @@ def team_mode(player_name):
 
     return render_template('team_view.html', p1=p1, p2=p2, match_id=match.id)
 
+# Aggiungi questa rotta nel tuo routes.py
+@bp.route('/api/render_table/<int:match_id>')
+def api_render_table(match_id):
+    # 1. Recupera la partita e i dati necessari
+    match = ActiveMatch.query.get_or_404(match_id)
+    
+    # Recupera gli stessi dati che usi nella home (punteggi, giocatori, ecc.)
+    # Esempio semplificato (adatta al tuo contesto):
+    score_t1 = sum(1 for h in match.hits if h.team == 't1')
+    score_t2 = sum(1 for h in match.hits if h.team == 't2')
+    all_players = Player.query.all()
+    
+    # 2. Renderizza SOLO il pezzetto di HTML relativo a un tavolo.
+    # TRUCCO: Creiamo un template 'parziale' o usiamo una macro/stringa.
+    # La soluzione più pulita è creare un file `_table_card.html` con il codice del tavolo
+    # e usarlo sia nella home che qui.
+    
+    # Per ora, restituiamo un template che contiene SOLO il div .match-card
+    return render_template('includes/single_match_card.html', 
+                           m=match, 
+                           item={'match': match, 'score_t1': score_t1, 'score_t2': score_t2},
+                           players=all_players,
+                           busy_players=get_busy_players_set(), # La tua funzione per chi è occupato
+                           current_user=session.get('player_name'))
 
 # --- ROTTE PER GESTIONE MANUALE ---
 

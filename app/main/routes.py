@@ -607,18 +607,19 @@ def assign_slot():
     match = ActiveMatch.query.get_or_404(match_id)
     
     # --- MODIFICA FONDAMENTALE PER "NESSUNO" MULTIPLO ---
-    # 1. Se il giocatore è 'CLOSED' (Nessuno), lo assegniamo SUBITO.
-    #    Non facciamo il controllo "busy_match" perché "Nessuno" può essere ovunque.
+    # 1. Se il giocatore è 'CLOSED' (Nessuno)
     if player_name == 'CLOSED':
         if slot in ['t1_p1', 't1_p2', 't2_p1', 't2_p2']:
             setattr(match, slot, 'CLOSED')
             db.session.commit()
+            
+            # === NOVITÀ: AVVISA TUTTI ===
+            socketio.emit('partita_aggiornata', {'match_id': match.id})
+            # ============================
+            
         return redirect(url_for('main.home'))
     
-    # 2. Se invece è un giocatore REALE (diverso da CLOSED), facciamo i controlli
-    
-    # Controllo: Chi è già impegnato in altre partite attive?
-    # Nota: get_match_info cercherà se 'player_name' è in uso.
+    # 2. Se invece è un giocatore REALE
     busy_match, _ = get_match_info(player_name)
     
     # Se busy_match esiste, significa che l'utente è già in gioco
@@ -630,6 +631,10 @@ def assign_slot():
     if slot in ['t1_p1', 't1_p2', 't2_p1', 't2_p2']:
         setattr(match, slot, player_name)
         db.session.commit()
+        
+        # === NOVITÀ: AVVISA TUTTI ===
+        socketio.emit('partita_aggiornata', {'match_id': match.id})
+        # ============================
         
     return redirect(url_for('main.home'))
 

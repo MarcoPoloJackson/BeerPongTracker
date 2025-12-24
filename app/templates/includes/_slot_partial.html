@@ -1,0 +1,38 @@
+{# FILE: templates/includes/_slot_partial.html #}
+{# DO NOT PUT {% include %} inside this file! #}
+
+{% if player != 'CLOSED' %}
+    {% set am_i_busy = current_user in busy_players %}
+    {% set is_me = (player == current_user) %}
+
+    <div class="slot-box {% if player %}filled{% else %}empty{% endif %} {% if is_me %}my-seat{% endif %}" 
+        {% if not player %}
+            {% if am_i_busy %}
+                onclick="openModal('{{ m.id }}', '{{ slot_key }}')" style="cursor: pointer;" title="Assegna un altro giocatore"
+            {% else %}
+                onclick="instantJoin('{{ m.id }}', '{{ slot_key }}', '{{ current_user }}')" style="cursor: pointer;" title="Siediti qui"
+            {% endif %}
+        {% else %}
+            style="cursor: default;"
+        {% endif %}
+    >
+        {% if player %}
+            {% set found_p = players|selectattr("name", "equalto", player)|list %}
+            {% set p_obj = found_p[0] if found_p else None %}
+            
+            <a href="{{ url_for('main.index', player_name=player) }}" class="player-link" title="{{ player }}">
+                <span class="mini-avatar">
+                    {% if p_obj and p_obj.icon %}{{ p_obj.icon }}{% else %}{{ player[:1] | upper }}{% endif %}
+                </span>
+                <span class="player-name-text">
+                    {{ player }}
+                    {% if is_me %}<span style="opacity:0.6; font-size:0.8em; margin-left:4px;">(Tu)</span>{% endif %}
+                </span>
+            </a>
+            
+            <button class="btn-kick" title="Rimuovi" onclick="event.stopPropagation(); openKickModal('{{ player }}', '{{ url_for('main.remove_player_slot', match_id=m.id, slot=slot_key) }}');">&times;</button>
+        {% else %}
+            {% if am_i_busy %}<button class="btn-join">＋ Assegna</button>{% else %}<button class="btn-join">＋ Siediti</button>{% endif %}
+        {% endif %}
+    </div>
+{% endif %}

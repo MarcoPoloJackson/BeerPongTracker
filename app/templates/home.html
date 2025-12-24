@@ -134,101 +134,10 @@
             <div class="matches-grid">
                 {% for item in matches_data %}
                     {% set m = item.match %}
-                    {% set badge_text = 'IN PREPARAZIONE' %}
-                    {% set status_class = 'prep' %}
+                    
+                    {# Sostituisci tutto il codice manuale con questo include #}
+                    {% include 'includes/single_match_card.html' %}
 
-                    {% if 'redemption' in m.status %}
-                        {% set badge_text = '🔥 SALVEZZA' %}
-                        {% set status_class = 'redemption' %}
-                    {% elif m.mode == 'overtime' %}
-                        {% set badge_text = '⚡ OVERTIME' %}
-                        {% set status_class = 'overtime' %}
-                    {% elif m.t1_p1 and m.t2_p1 %}
-                         {% set badge_text = '🟢 LIVE' %}
-                         {% set status_class = 'live' %}
-                    {% endif %}
-
-                    <div class="match-card fade-in {{ status_class }}">
-                        <div class="match-header">
-                            <span class="match-title">Tavolo #{{ m.id }}</span>
-                            <span class="status-badge {{ status_class }}">{{ badge_text }}</span>
-
-                            <a href="{{ url_for('main.manual_override', match_id=m.id) }}" class="btn-manual-mini" title="Gestione Manuale">
-                                🛠️
-                            </a>
-                        </div>
-
-                        <div class="match-body">
-                            
-                            {# --- TEAM BLU --- #}
-                            {% set is_blue_single = (m.t1_p1 == 'CLOSED' or m.t1_p2 == 'CLOSED') %}
-                            
-                            {# Aggiungiamo position: relative alla colonna per contenere la scritta assoluta #}
-                            <div class="team-col {% if is_blue_single %}single-player-layout{% endif %}" style="position: relative;">
-                                
-                                {# Se è DOPPIO: Scritta normale in alto #}
-                                {% if not is_blue_single %}
-                                    <div class="team-header team-blue">🔵 TEAM BLU</div>
-                                {% endif %}
-
-                                {{ render_slot(m, 't1_p1', item.score_t1, players) }}
-                                {{ render_slot(m, 't1_p2', item.score_t1, players) }}
-
-                                {# Se è SINGOLO: Scritta ASSOLUTA in BASSO #}
-                                {% if is_blue_single %}
-                                    <div class="team-header team-blue" 
-                                         style="position: absolute; bottom: 0; left: 0; right: 0; margin-bottom: -5px;">
-                                        🔵 TEAM BLU
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="live-score-display">
-                                {# ... (il blocco punteggio/cestino che hai già sistemato, lascialo così com'è) ... #}
-                                {% set t1_p1_active = m.t1_p1 and m.t1_p1 != 'CLOSED' %}
-                                {% set t1_p2_active = m.t1_p2 and m.t1_p2 != 'CLOSED' %}
-                                {% set t2_p1_active = m.t2_p1 and m.t2_p1 != 'CLOSED' %}
-                                {% set t2_p2_active = m.t2_p2 and m.t2_p2 != 'CLOSED' %}
-
-                                {% set is_table_empty = not (t1_p1_active or t1_p2_active or t2_p1_active or t2_p2_active) %}
-
-                                {% if is_table_empty %}
-                                    <button class="btn-delete-table" 
-                                            onclick="openDeleteTableModal('{{ m.id }}', '{{ url_for('main.delete_match', match_id=m.id) }}')"
-                                            title="Elimina Tavolo Vuoto">
-                                        🗑️
-                                    </button>
-                                {% else %}
-                                    <div class="score-number blue">{{ item.score_t1 }}</div>
-                                    <div class="score-sep"></div>
-                                    <div class="score-number red">{{ item.score_t2 }}</div>
-                                {% endif %}
-                            </div>
-
-                            {# --- TEAM ROSSO --- #}
-                            {% set is_red_single = (m.t2_p1 == 'CLOSED' or m.t2_p2 == 'CLOSED') %}
-                            
-                            {# Aggiungiamo position: relative alla colonna #}
-                            <div class="team-col {% if is_red_single %}single-player-layout{% endif %}" style="position: relative;">
-                                
-                                {# Se è SINGOLO: Scritta ASSOLUTA in ALTO #}
-                                {% if is_red_single %}
-                                    <div class="team-header team-red" 
-                                         style="position: absolute; top: 0; left: 0; right: 0; margin-top: -5px;">
-                                        🔴 TEAM ROSSO
-                                    </div>
-                                {% endif %}
-
-                                {{ render_slot(m, 't2_p1', item.score_t2, players) }}
-                                {{ render_slot(m, 't2_p2', item.score_t2, players) }}
-                                
-                                {# Se è DOPPIO: Scritta normale in basso #}
-                                {% if not is_red_single %}
-                                    <div class="team-header team-red" style="margin-top: 5px;">🔴 TEAM ROSSO</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
                 {% endfor %}
             </div>
         {% else %}
@@ -346,6 +255,9 @@
 {% endblock %}
 
 {% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
     <script>window.currentUserName = "{{ session.get('player_name', '') }}";</script>
+
     <script src="{{ url_for('static', filename='js/home.js') }}"></script>
 {% endblock %}
