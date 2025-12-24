@@ -10,68 +10,72 @@
 {% endblock %}
 
 {% block content %}
+    {# ... resto del codice ... #}
 
-    {# --- MACRO SLOT GIOCATORE (CORRETTA: ORA ACCETTA 'players' COME ARGOMENTO) --- #}
+    {# --- MACRO SLOT GIOCATORE --- #}
     {% macro render_slot(match, slot_key, score, players) %}
         {% set player = match[slot_key] %}
         
-        {# Verifica se l'utente corrente è già occupato #}
-        {# Nota: busy_players e current_user sono globali speciali, spesso si vedono, ma per sicurezza usiamo players per i dati #}
-        {% set am_i_busy = current_user in busy_players %}
-        {% set is_me = (player == current_user) %}
-
-        <div class="slot-box 
-            {% if player %}filled{% else %}empty{% endif %} 
-            {% if is_me %}my-seat{% endif %}" 
+        {# --- LOGICA VISUALIZZAZIONE --- #}
+        {# Se il valore è 'CLOSED' (impostato dal tasto Nessuno), NON renderizziamo nulla #}
+        {% if player != 'CLOSED' %}
             
-            {% if not player %}
-                {% if am_i_busy %}
-                    onclick="openModal('{{ match.id }}', '{{ slot_key }}')"
-                    style="cursor: pointer;" title="Assegna un altro giocatore"
-                {% else %}
-                    onclick="instantJoin('{{ match.id }}', '{{ slot_key }}', '{{ current_user }}')"
-                    style="cursor: pointer;" title="Siediti qui"
-                {% endif %}
-            {% else %}
-                style="cursor: default;"
-            {% endif %}
-        >
+            {# Verifica se l'utente corrente è già occupato #}
+            {% set am_i_busy = current_user in busy_players %}
+            {% set is_me = (player == current_user) %}
 
-            {% if player %}
-                {# --- CASO 1: OCCUPATO --- #}
-                {# FIX: Usiamo la lista 'players' passata come argomento #}
-                {% set found_p = players|selectattr("name", "equalto", player)|list %}
-                {% set p_obj = found_p[0] if found_p else None %}
+            <div class="slot-box 
+                {% if player %}filled{% else %}empty{% endif %} 
+                {% if is_me %}my-seat{% endif %}" 
                 
-                <a href="{{ url_for('main.index', player_name=player) }}" class="player-link" title="{{ player }}">
-                    <span class="mini-avatar">
-                        {# Mostra l'icona se il giocatore ne ha una, altrimenti l'iniziale #}
-                        {% if p_obj and p_obj.icon %}
-                            {{ p_obj.icon }}
-                        {% else %}
-                            {{ player[:1] | upper }}
-                        {% endif %}
-                    </span>
-                    <span class="player-name-text">
-                        {{ player }}
-                        {% if is_me %}<span style="opacity:0.6; font-size:0.8em; margin-left:4px;">(Tu)</span>{% endif %}
-                    </span>
-                </a>
-                
-                <button class="btn-kick" title="Rimuovi" 
-                   onclick="event.stopPropagation(); openKickModal('{{ player }}', '{{ url_for('main.remove_player_slot', match_id=match.id, slot=slot_key) }}');">
-                    &times;
-                </button>
-
-            {% else %}
-                {# --- CASO 2: VUOTO --- #}
-                {% if am_i_busy %}
-                    <button class="btn-join">＋ Assegna</button>
+                {% if not player %}
+                    {# Se vuoto: Click per sedersi o assegnare #}
+                    {% if am_i_busy %}
+                        onclick="openModal('{{ match.id }}', '{{ slot_key }}')"
+                        style="cursor: pointer;" title="Assegna un altro giocatore"
+                    {% else %}
+                        onclick="instantJoin('{{ match.id }}', '{{ slot_key }}', '{{ current_user }}')"
+                        style="cursor: pointer;" title="Siediti qui"
+                    {% endif %}
                 {% else %}
-                    <button class="btn-join">＋ Siediti</button>
+                    style="cursor: default;"
                 {% endif %}
-            {% endif %}
-        </div>
+            >
+
+                {% if player %}
+                    {# --- CASO 1: OCCUPATO --- #}
+                    {% set found_p = players|selectattr("name", "equalto", player)|list %}
+                    {% set p_obj = found_p[0] if found_p else None %}
+                    
+                    <a href="{{ url_for('main.index', player_name=player) }}" class="player-link" title="{{ player }}">
+                        <span class="mini-avatar">
+                            {% if p_obj and p_obj.icon %}
+                                {{ p_obj.icon }}
+                            {% else %}
+                                {{ player[:1] | upper }}
+                            {% endif %}
+                        </span>
+                        <span class="player-name-text">
+                            {{ player }}
+                            {% if is_me %}<span style="opacity:0.6; font-size:0.8em; margin-left:4px;">(Tu)</span>{% endif %}
+                        </span>
+                    </a>
+                    
+                    <button class="btn-kick" title="Rimuovi" 
+                       onclick="event.stopPropagation(); openKickModal('{{ player }}', '{{ url_for('main.remove_player_slot', match_id=match.id, slot=slot_key) }}');">
+                        &times;
+                    </button>
+
+                {% else %}
+                    {# --- CASO 2: VUOTO (Mostra bottone +) --- #}
+                    {% if am_i_busy %}
+                        <button class="btn-join">＋ Assegna</button>
+                    {% else %}
+                        <button class="btn-join">＋ Siediti</button>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endif %} {# Fine controllo CLOSED #}
     {% endmacro %}
 
 
@@ -79,7 +83,6 @@
         
         {# --- HEADER UTENTE --- #}
         <div class="dashboard-header">
-            {# Logica sicura per trovare l'utente corrente #}
             {% set found_me = players|selectattr("name", "equalto", current_user)|list %}
             {% set me = found_me[0] if found_me else None %}
 
@@ -110,7 +113,8 @@
                     </label>
                 </form>
                 <a href="{{ url_for('main.logout') }}" class="btn-logout">
-                    <span class="logout-icon">⏻</span> Logout
+                    <span class="logout-icon">⏻</span>
+                     <span class="logout-text">Logout</span>
                 </a>
             </div>
         </div>
@@ -155,15 +159,38 @@
                         </div>
 
                         <div class="match-body">
-                            <div class="team-col">
-                                <div class="team-header team-blue">🔵 TEAM BLU</div>
-                                {# --- QUI PASSIAMO 'players' ALLA MACRO --- #}
+                            
+                            {# --- TEAM BLU --- #}
+                            {% set is_blue_single = (m.t1_p1 == 'CLOSED' or m.t1_p2 == 'CLOSED') %}
+                            
+                            {# Aggiungiamo position: relative alla colonna per contenere la scritta assoluta #}
+                            <div class="team-col {% if is_blue_single %}single-player-layout{% endif %}" style="position: relative;">
+                                
+                                {# Se è DOPPIO: Scritta normale in alto #}
+                                {% if not is_blue_single %}
+                                    <div class="team-header team-blue">🔵 TEAM BLU</div>
+                                {% endif %}
+
                                 {{ render_slot(m, 't1_p1', item.score_t1, players) }}
                                 {{ render_slot(m, 't1_p2', item.score_t1, players) }}
+
+                                {# Se è SINGOLO: Scritta ASSOLUTA in BASSO #}
+                                {% if is_blue_single %}
+                                    <div class="team-header team-blue" 
+                                         style="position: absolute; bottom: 0; left: 0; right: 0; margin-bottom: -5px;">
+                                        🔵 TEAM BLU
+                                    </div>
+                                {% endif %}
                             </div>
 
                             <div class="live-score-display">
-                                {% set is_table_empty = not (m.t1_p1 or m.t1_p2 or m.t2_p1 or m.t2_p2) %}
+                                {# ... (il blocco punteggio/cestino che hai già sistemato, lascialo così com'è) ... #}
+                                {% set t1_p1_active = m.t1_p1 and m.t1_p1 != 'CLOSED' %}
+                                {% set t1_p2_active = m.t1_p2 and m.t1_p2 != 'CLOSED' %}
+                                {% set t2_p1_active = m.t2_p1 and m.t2_p1 != 'CLOSED' %}
+                                {% set t2_p2_active = m.t2_p2 and m.t2_p2 != 'CLOSED' %}
+
+                                {% set is_table_empty = not (t1_p1_active or t1_p2_active or t2_p1_active or t2_p2_active) %}
 
                                 {% if is_table_empty %}
                                     <button class="btn-delete-table" 
@@ -178,11 +205,27 @@
                                 {% endif %}
                             </div>
 
-                            <div class="team-col">
-                                {# --- QUI PASSIAMO 'players' ALLA MACRO --- #}
+                            {# --- TEAM ROSSO --- #}
+                            {% set is_red_single = (m.t2_p1 == 'CLOSED' or m.t2_p2 == 'CLOSED') %}
+                            
+                            {# Aggiungiamo position: relative alla colonna #}
+                            <div class="team-col {% if is_red_single %}single-player-layout{% endif %}" style="position: relative;">
+                                
+                                {# Se è SINGOLO: Scritta ASSOLUTA in ALTO #}
+                                {% if is_red_single %}
+                                    <div class="team-header team-red" 
+                                         style="position: absolute; top: 0; left: 0; right: 0; margin-top: -5px;">
+                                        🔴 TEAM ROSSO
+                                    </div>
+                                {% endif %}
+
                                 {{ render_slot(m, 't2_p1', item.score_t2, players) }}
                                 {{ render_slot(m, 't2_p2', item.score_t2, players) }}
-                                <div class="team-header team-red" style="margin-top: 5px;">🔴 TEAM ROSSO</div>
+                                
+                                {# Se è DOPPIO: Scritta normale in basso #}
+                                {% if not is_red_single %}
+                                    <div class="team-header team-red" style="margin-top: 5px;">🔴 TEAM ROSSO</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -243,7 +286,7 @@
         {% endif %}
     </div>
 
-    {# --- MODALI (Rimasti invariati) --- #}
+    {# --- MODALI --- #}
     <div id="playerModal" class="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content">
             <h3>Scegli Giocatore</h3>
@@ -253,14 +296,21 @@
                 <input type="hidden" name="slot" id="modalSlot">
                 <input type="hidden" name="player_name" id="modalPlayerName">
                 <div class="player-grid-modal">
-                {% for p in players %}
-                    {% set is_busy = p.name in busy_players %}
-                    <div class="modal-chip {% if is_busy %}busy{% endif %}" 
-                         {% if not is_busy %}onclick="submitSelection('{{ p.name }}')"{% endif %}>
-                        {{ p.name }}
-                        {% if is_busy %}<span style="font-size: 0.8em;">(In gioco) 🔒</span>{% endif %}
+                    
+                    {# --- TASTO PER MODALITÀ SINGOLA --- #}
+                    {# Invia 'CLOSED' al backend per nascondere lo slot #}
+                    <div class="modal-chip chip-none" onclick="submitSelection('CLOSED')">
+                        🚫 NESSUNO
                     </div>
-                {% endfor %}
+                    
+                    {% for p in players %}
+                        {% set is_busy = p.name in busy_players %}
+                        <div class="modal-chip {% if is_busy %}busy{% endif %}" 
+                             {% if not is_busy %}onclick="submitSelection('{{ p.name }}')"{% endif %}>
+                            {{ p.name }}
+                            {% if is_busy %}<span style="font-size: 0.8em;">(In gioco) 🔒</span>{% endif %}
+                        </div>
+                    {% endfor %}
                 </div>
             </form>
             <div class="modal-footer">

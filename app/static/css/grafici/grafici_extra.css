@@ -46,15 +46,6 @@
     text-align: left;         /* Il testo parte da sinistra rispetto al flex container */
 }
 
-/* Responsive: su mobile riduciamo leggermente */
-@media (max-width: 768px) {
-    .header-avatar-large {
-        width: 50px;
-        height: 50px;
-        font-size: 1.8em;
-        border-radius: 12px;
-    }
-}
 
 
 
@@ -224,24 +215,6 @@ canvas {
     max-height: 300px; /* Altezza massima controllata */
 }
 
-@media (max-width: 768px) {
-    .stats-grid {
-        grid-template-columns: 1fr; /* Un solo grafico per riga */
-    }
-    
-    .stats-header h1 {
-        font-size: 1.8rem;
-    }
-
-    .chart-card {
-        min-height: auto; /* Evita spazi vuoti eccessivi su mobile */
-    }
-
-    .chart-wrapper, .pie-chart-container {
-        height: 250px; /* Riduciamo leggermente l'altezza per schermi piccoli */
-    }
-}
-
 
 /* --- STILE PER I GRAFICI A TORTA (Vale per entrambi) --- */
 .pie-chart-container {
@@ -372,19 +345,7 @@ canvas {
     color: #fff;
 }
 
-/* Adattamento per dispositivi mobili */
-@media (max-width: 600px) {
-    .nav-buttons-container {
-        flex-direction: column;
-        align-items: center;
-        gap: 20px;
-    }
-    
-    .btn-nav.extra {
-        width: 90%; /* Pulsanti quasi a tutta larghezza su smartphone */
-        padding: 15px 20px;
-    }
-}
+
 
 /* --- AGGIUNTA PER WIDGET TATTICHE & CURIOSITÀ --- */
 
@@ -489,3 +450,194 @@ canvas {
     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
+
+
+
+
+/* =========================================
+   REVISIONE TOTALE MOBILE (< 600px)
+   ========================================= */
+@media (max-width: 600px) {
+    
+    /* 0. CONTENITORE GENERALE */
+    .icon-container, .home-container, body {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    /* 1. TUTTI I WIDGETS (Top, Record e Curiosità): 2 PER RIGA */
+    .top-widgets,
+    .insights-grid,
+    .bottom-widgets {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important; 
+        gap: 10px !important;
+        margin-bottom: 25px !important;
+        width: 100% !important;
+    }
+
+    /* Stile unificato per ogni singolo quadratino (Widget) */
+    .widget, 
+    .widget-insight-mini {
+        padding: 10px 5px !important;
+        min-height: 85px !important; /* Leggermente più alto per ospitare badge o note */
+        border-radius: 12px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
+        background: #2c3e50 !important; /* Colore base scuro */
+        border: 1px solid rgba(255,255,255,0.1) !important;
+    }
+
+    /* Etichette e Testi piccoli */
+    .widget span, 
+    .widget-insight-mini .label {
+        font-size: 0.65em !important;
+        line-height: 1.1 !important;
+        margin-bottom: 4px !important;
+        text-transform: uppercase !important;
+        opacity: 0.8;
+    }
+
+    /* Numeri e Valori principali */
+    .widget strong, 
+    .widget-insight-mini .value {
+        font-size: 1.1em !important;
+        line-height: 1.1 !important;
+        font-weight: bold !important;
+        word-break: break-word !important;
+    }
+
+    /* Badge per le percentuali (Curiosità) */
+    .widget-insight-mini .badge {
+        font-size: 0.6em !important;
+        margin-top: 5px !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+        background: rgba(255,255,255,0.1) !important;
+    }
+
+    /* 2. GRAFICI: 1 PER RIGA, PIÙ ALTI */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 25px !important;
+        padding: 0 5px !important;
+    }
+
+    .chart-card {
+        padding: 15px !important;
+        min-height: 450px !important; 
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .chart-wrapper, .pie-chart-container {
+        height: 350px !important; 
+        width: 100% !important;
+    }
+
+    canvas {
+        max-height: 350px !important;
+    }
+
+    /* 3. HEADER E TITOLI */
+    .header-avatar-large {
+        width: 45px !important;
+        height: 45px !important;
+        font-size: 1.5em !important;
+    }
+
+    .stats-header h1 {
+        font-size: 1.4rem !important;
+    }
+
+    .section-title {
+        font-size: 1.3rem !important;
+        margin-top: 35px !important;
+        text-align: center !important;
+    }
+
+    /* Correzione per i messaggi "Nessun dato" che occupano tutto lo spazio */
+    .widget-insight-mini[style*="grid-column: span 4"] {
+        grid-column: span 2 !important;
+    }
+    /* 4. HEADER E TITOLI (AUMENTATI) */
+    .header-avatar-large {
+        width: 60px !important;      /* Aumentato da 45px a 60px */
+        height: 60px !important;     /* Aumentato da 45px a 60px */
+        min-width: 60px !important;
+        font-size: 2.2em !important; /* Emoji più grande */
+        border-radius: 16px !important;
+    }
+
+    .stats-header h1 {
+        font-size: 2.1rem !important; /* Aumentato da 1.4rem a 2.1rem */
+        font-weight: 800 !important;
+        line-height: 1.1 !important;
+    }
+}
+
+/* =========================================
+   NAVIGAZIONE IN BASSO - GRIGLIA 2x2 UNIFORME
+   ========================================= */
+@media (max-width: 600px) {
+    
+    .bottom-navigation {
+        margin-top: 40px !important;
+        padding: 30px 15px 60px 15px !important;
+        border-top: 2px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .nav-buttons-container {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important; 
+        gap: 12px !important;
+        width: 100% !important;
+    }
+
+    .btn-nav.extra {
+        min-width: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        height: 90px !important;
+        background: #334155 !important; 
+        color: #ffffff !important;      
+        border: 2px solid #475569 !important; 
+        border-radius: 18px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-decoration: none !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+    }
+
+    .btn-nav.extra i {
+        font-size: 1.7rem !important;
+        margin-bottom: 6px !important;
+        color: #60a5fa !important; 
+    }
+
+    .btn-home-full {
+        grid-column: auto !important; 
+        background: #4c1d23 !important; 
+        border-color: #7f1d1d !important;
+    }
+
+    .btn-home-full i {
+        color: #f87171 !important;
+    }
+
+    .btn-nav.extra span {
+        font-size: 0.8rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+    }
+
+    .btn-nav.extra:active {
+        transform: scale(0.95) !important;
+        filter: brightness(0.8) !important;
+    }
+}

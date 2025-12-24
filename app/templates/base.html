@@ -2,18 +2,56 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <title>{% block title %}Beer Pong Tracker{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    {% block styles %}{% endblock %}
-</head>
 
-{# QUESTA RIGA È FONDAMENTALE: prende la classe 'preload' dal figlio #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    {% block styles %}{% endblock %}
+
+    <style>
+        /* Reset universale per evitare lo scroll orizzontale su mobile */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; /* Rimuove il flash blu al tocco su iPhone */
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0; 
+                margin: 0;
+                font-size: 16px;
+                overflow-x: hidden; /* Blocca scivolamenti laterali fastidiosi */
+            }
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 15px !important;
+            }
+        }
+    </style>
+</head>
 <body class="{% block body_class %}{% endblock %}">
 
-    {% block content %}{% endblock %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages-global">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    
     {% block scripts %}{% endblock %}
-
 </body>
 </html>

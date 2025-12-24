@@ -400,13 +400,14 @@ function checkTeammateStatus() {
     fetch(`/check_teammate_edit/${window.teammateName}`)
         .then(response => response.json())
         .then(data => {
+            const isAdmin = (typeof window.isSuperAdmin !== 'undefined' && window.isSuperAdmin === true);
             const btn = document.getElementById('team-btn-container');
             const badge = document.getElementById('team-status-badge');
             const errorMsg = document.getElementById('team-error-msg');
 
             if (!btn) return;
 
-            if (data.can_edit) {
+            if (data.can_edit || isAdmin) {
                 // Abilitato
                 btn.classList.remove('disabled-card');
                 btn.classList.add('normal-card');
@@ -432,24 +433,44 @@ function checkTeammateStatus() {
 }
 
 window.handleTeamClick = function() {
-    const btn = document.getElementById('team-btn-container');
-    if (!btn) return;
+    // 1. Usa l'ID corretto presente nel tuo HTML
+    const btn = document.getElementById('team-header-btn');
+    const errorMsg = document.getElementById('team-error-msg');
+    
+    // 2. Verifica Admin (passata da Jinja)
+    const isAdmin = (typeof window.isSuperAdmin !== 'undefined' && window.isSuperAdmin === true);
 
-    const isEnabled = btn.getAttribute('data-enabled') === 'true';
+    // 3. Verifica se è bloccato controllando la classe 'locked' che Jinja ha aggiunto
+    const isLocked = btn && btn.classList.contains('locked');
 
-    if (!isEnabled) {
-        // Effetto shake se clicchi quando bloccato
+    // SE è bloccato E NON sei admin -> Errore
+    if (isLocked && !isAdmin) {
+        // Aggiunge animazione shake (resetta prima per poterla rifare)
+        btn.style.animation = 'none';
+        btn.offsetHeight; /* trigger reflow */
         btn.style.animation = "shake 0.3s";
-        setTimeout(() => btn.style.animation = "", 300);
+        btn.style.borderColor = "#e74c3c"; // Rosso errore
+
+        if(errorMsg) {
+            // Scrive il testo (fondamentale perché il div HTML è vuoto)
+            errorMsg.innerHTML = "🔒 <b>Lucchetto chiuso:</b> Il compagno deve attivare 'Condividi'.";
+            errorMsg.style.display = 'block';
+            
+            // Nasconde dopo 3 secondi
+            setTimeout(() => { 
+                errorMsg.style.display = 'none'; 
+                btn.style.borderColor = "#90caf9"; // Torna blu
+            }, 3000);
+        }
         return; 
     }
 
-    // APERTURA IN NUOVA SCHEDA (Target _blank)
-    // Questo permette all'utente di usare il tasto Fullscreen che abbiamo messo in team_view.html
+    // SE autorizzato -> Vai alla pagina Team
     if (window.teamViewUrl) {
-        window.open(window.teamViewUrl, '_blank');
-    }
+        window.location.href = window.teamViewUrl;
+        }
 };
+
 
 // --- B. LOGICA COLORE BEVANDA ---
 function updateDrinkColor() {
@@ -506,5 +527,49 @@ document.addEventListener("DOMContentLoaded", function() {
                 location.reload(); 
             }
         });
+    }
+
+    // 5. FIX NAVIGAZIONE IFRAME (Split Screen)
+    // Questo blocco impedisce al form di farti uscire dalla modalità squadra
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('context') === 'split') {
+        const gameForm = document.getElementById('gameForm');
+        
+        if (gameForm) {
+            // Funzione che invia i dati senza cambiare pagina, poi ricarica l'iframe
+            const handleAjaxSubmit = function(e) {
+                if(e) e.preventDefault(); // Blocca invio standard HTML
+                
+                // Mostra un caricamento visivo (opzionale: cursore attesa)
+                document.body.style.cursor = 'wait';
+
+                fetch(gameForm.action, {
+                    method: 'POST',
+                    body: new FormData(gameForm)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // SUCCESSO: Ricarica la pagina corrente mantenendo ?context=split
+                        window.location.reload();
+                    } else {
+                        console.error("Errore salvataggio");
+                        // Se fallisce, prova il metodo classico
+                        gameForm.submit(); 
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore Fetch:', error);
+                });
+            };
+
+            // A. Intercetta il submit standard (tasto Enter o button type="submit")
+            gameForm.addEventListener('submit', handleAjaxSubmit);
+
+            // B. Intercetta il submit via Javascript (usato da handleResultClick)
+            // Sovrascriviamo la funzione .submit() del form
+            gameForm.submit = function() {
+                handleAjaxSubmit();
+            };
+        }
     }
 });

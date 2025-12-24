@@ -6,4 +6,6 @@ app = create_app()
 if __name__ == '__main__':
     # Usiamo socketio.run invece di app.run
     # allow_unsafe_werkzeug=True serve se usi l'ambiente di sviluppo base
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+
+    # socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5001, debug=True, allow_unsafe_werkzeug=True)

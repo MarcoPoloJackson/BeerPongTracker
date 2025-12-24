@@ -5,28 +5,133 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sito Privato</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #2c3e50; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; width: 90%; max-width: 400px; }
+        /* RESET UNIVERSALE: Evita che i calcoli del browser sbaglino le larghezze */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #2c3e50; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+        }
+
+        /* CARD DESKTOP */
+        .card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            text-align: center; 
+            width: 90%; 
+            max-width: 400px; 
+        }
+
         h2 { margin-top: 0; color: #333; }
-        input { width: 100%; padding: 15px; margin: 20px 0; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1.1em; text-align: center; }
-        button { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #2ecc71; }
-        .alert { color: #e74c3c; margin-bottom: 15px; font-weight: bold; }
+
+        input { 
+            width: 100%; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border: 2px solid #ddd; 
+            border-radius: 10px; 
+            font-size: 1.1em; 
+            text-align: center; 
+        }
+
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background: #27ae60; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 1.1em; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+
+        /* ======================================================
+           PALESTRA MEDIA QUERY (MOBILE < 600px)
+           Gioca con questi valori per capire come cambiano il sito
+           ====================================================== */
+        @media (max-width: 600px) {
+            
+            body {
+                /* Se vuoi che la card su mobile stia in alto e non al centro */
+                /* align-items: flex-start; padding-top: 50px; */
+                background: #1a252f; /* Cambiamo colore sfondo su mobile per test */
+            }
+
+            .card {
+                /* 1. LARGHEZZA: Prova a cambiare tra 80%, 100% o 95% */
+                width: 92% !important; 
+                max-width: none !important;
+
+                /* 2. PADDING: Spazio interno (sopra/sotto e dx/sx) */
+                /* Diminuirlo su mobile regala spazio al contenuto */
+                padding: 40px 15px !important; 
+
+                /* 3. BORDI: Arrotondamento */
+                border-radius: 8% !important; /* Diventa quadrato su mobile */
+                
+                /* 4. MARGINI: Se vuoi staccarlo dai bordi del telefono */
+                margin: 0 10px;
+            }
+
+            h2 {
+                /* 5. TESTI: Grandezza del titolo */
+                /* Usa 'rem' per scalare bene. Prova 1.5rem o 2.5rem */
+                font-size: 1.8rem !important; 
+                
+                /* 6. SPAZIATURA LETTERE: Per un look più moderno */
+                letter-spacing: -1px;
+            }
+
+            input {
+                /* 7. ALTEZZA: Cambia il padding per renderlo più o meno "cicciotto" */
+                padding: 12px !important; 
+                
+                /* 8. BORDI INPUT: Cambia colore per evidenziarlo su mobile */
+                border-color: #27ae60 !important;
+                
+                /* 9. TESTO: Cambia grandezza testo dentro l'input */
+                font-size: 1.1rem !important;
+            }
+
+            button {
+                /* 10. BOTTONE: Rendilo enorme per facilitare il tocco col pollice */
+                padding: 20px !important;
+                
+                /* 11. TRASFORMAZIONE: Tutto maiuscolo */
+                text-transform: uppercase;
+                
+                /* 12. OMBRA: Aggiungi un'ombra al bottone */
+                box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+            }
+
+            /* AGGIUNTA SPERIMENTALE: Prova a vedere cosa succede 
+               se vuoi spostare la password sotto il bottone (non ha senso qui, 
+               ma è per farti capire l'order del flexbox) */
+            form {
+                display: flex;
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>🔒 Accesso Riservato</h2>
-        
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="alert">{{ messages[0] }}</div>
-            {% endif %}
-        {% endwith %}
-
         <form method="POST">
-            <input type="password" name="site_password" placeholder="Inserisci Password" required autofocus>
-            <button type="submit">Sblocca Sito</button>
+            <input type="password" name="site_password" placeholder="Password" required autofocus>
+            <button type="submit">ENTRA ORA</button>
         </form>
     </div>
 </body>

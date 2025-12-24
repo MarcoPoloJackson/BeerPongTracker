@@ -490,3 +490,97 @@ body {
 /* Bordi laterali colorati per identificare subito chi ha vinto la riga */
 .history-row.win-blue { border-left: 5px solid #2563eb; background: linear-gradient(90deg, #eff6ff 0%, transparent 100%); }
 .history-row.win-red { border-left: 5px solid #e11d48; background: linear-gradient(90deg, #fef2f2 0%, transparent 100%); }
+
+/* Incolla alla fine di home.css */
+
+.modal-chip.chip-none {
+    background-color: #2d3436; /* Grigio scuro/Nero */
+    color: #ff7675; /* Rosso chiaro */
+    border: 1px dashed #ff7675;
+    font-weight: bold;
+    order: -1; /* Forza questo elemento a stare sempre per primo */
+}
+
+.modal-chip.chip-none:hover {
+    background-color: #ff7675;
+    color: white;
+    border-style: solid;
+    transform: scale(1.05);
+}
+
+@media (max-width: 600px) {
+    /* --- FIX GRIGLIA GENERALE --- */
+    .history-grid {
+        display: flex;       /* Meglio di grid su mobile per impilare */
+        flex-direction: column;
+        width: 100%;         /* Riempie tutto lo spazio disponibile */
+        margin: 0;           /* Rimuove margini esterni che causano sbordature */
+        padding: 0;          /* Rimuove padding extra */
+        gap: 20px;           /* Spazio tra le card */
+    }
+
+    .page-subtitle{
+        font-size: 20px;
+        margin-bottom: 30px;
+    }
+    /* --- FIX CARD --- */
+    .series-card {
+        width: 100%;            /* Forza la larghezza al 100% del contenitore */
+        box-sizing: border-box; /* IMPERATIVO: fa sì che il padding non aumenti la larghezza totale */
+        margin: 0 auto;         /* Centra la card se dovesse essere più piccola */
+    }
+
+    /* --- FIX HEADER (VS e Bottone) --- */
+    .series-header {
+        display: flex;
+        flex-direction: column; /* Impila verticale */
+        align-items: center;    /* <--- QUESTO CENTRA GLI ELEMENTI ORIZZONTALMENTE */
+        text-align: center;     /* Centra il testo */
+        padding: 15px;
+        gap: 15px;
+    }
+
+    /* Centra anche i nomi delle squadre dentro l'header */
+    .team-names-hist {
+        justify-content: center; 
+        width: 100%;
+        flex-wrap: wrap; /* Se i nomi sono lunghissimi vanno a capo invece di sbordare */
+    }
+
+    /* --- FIX RIGHE STORICO --- */
+    .history-row {
+        display: flex;
+        flex-wrap: wrap; 
+        justify-content: center; /* Centra tutto il contenuto della riga */
+        padding: 10px;
+        text-align: center;
+    }
+
+    /* --- FIX BOX PUNTEGGIO --- */
+    .history-score-box {
+        margin: 8px 0;
+        width: 100%;        /* Occupa tutta la riga */
+        display: flex;
+        justify-content: center; /* Centra i numeri del punteggio */
+        order: 3;           /* Mantiene la tua preferenza di ordine */
+    }
+
+    .history-time, .history-winner-label {
+        width: auto;        /* Lascia che occupino lo spazio necessario */
+        font-size: 0.85em;  /* Leggermente più piccolo su mobile */
+    }
+    
+    /* --- FIX ACTION BAR (Pulsanti in alto) --- */
+    .action-bar {
+        flex-direction: column;
+        align-items: center; /* Centra i pulsanti */
+        width: 100%;
+        gap: 10px;
+    }
+    
+    .btn-main {
+        width: 100%;        /* Bottoni a larghezza piena */
+        box-sizing: border-box; /* Evita che il padding del bottone lo faccia uscire */
+        justify-content: center;
+    }
+}

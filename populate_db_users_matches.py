@@ -24,7 +24,7 @@ fake = Faker('it_IT')
 # ==========================================
 #             CONFIGURAZIONE
 # ==========================================
-ADMINS_CONFIG = ["admin1", "admin2", "admin3", "admin4"]
+ADMINS_CONFIG = ["prova1", "prova2", "prova3", "prova4"]
 COMMON_PASSWORD = "1234"
 TARGET_SHOTS_PER_ADMIN = 1000
 
@@ -57,10 +57,10 @@ def boolean_choice(probability):
     return random.randint(1, probability) == 1
 
 def generate_admins_and_npcs():
-    print(f"\n👤 STEP 1: Creazione Admin e Giocatori NPC...")
+    print(f"\n👤 STEP 1: Creazione prova e Giocatori NPC...")
     
     admins = []
-    # 1. Crea Admin
+    # 1. Crea prova
     hashed_pw = generate_password_hash(COMMON_PASSWORD)
     for name in ADMINS_CONFIG:
         adm = Player(name=name, password=hashed_pw, edit=True)
@@ -78,7 +78,7 @@ def generate_admins_and_npcs():
             npcs.append(npc)
             
     db.session.commit()
-    print(f"   ✅ Creati 4 Admin e {len(npcs)} NPC.")
+    print(f"   ✅ Creati 4 prova e {len(npcs)} NPC.")
     
     # Ricarichiamo gli oggetti dal DB per avere gli ID
     all_admins = Player.query.filter(Player.name.in_(ADMINS_CONFIG)).all()
@@ -263,10 +263,10 @@ if __name__ == "__main__":
         admins_list, npcs_list = generate_admins_and_npcs()
         all_players_pool = admins_list + npcs_list
 
-        # 3. Loop Statistiche per ogni Admin
+        # 3. Loop Statistiche per ogni prova
         print(f"\n📊 STEP 2: Generazione 1000 tiri per ciascuno dei 4 admin...")
         
         for admin in admins_list:
             generate_stats_for_admin(admin, all_players_pool)
 
-        print("\n✨ Finito! Ora hai 4 Admin con 1000 tiri esatti e statistiche realistiche.")
+        print("\n✨ Finito! Ora hai 4 prova con 1000 tiri esatti e statistiche realistiche.")

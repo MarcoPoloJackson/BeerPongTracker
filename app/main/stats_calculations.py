@@ -467,40 +467,23 @@ def calculate_shot_performance_metrics(data):
     
     last_date = max(dates) if dates else None
 
-    # --- 1. CONTEGGIO TIRI PER PARTITA ---
-    shots_per_match = {}      # {match_id: numero_tiri}
-    match_date_map = {}       # {match_id: data_partita}
-
-    # Iteriamo su tutti i tiri per contarli raggruppandoli per Match ID
+    # --- 1. CONTEGGIO TIRI PER PARTITA (Max Record) ---
+    shots_per_match = {}
+    match_date_map = {}
     for i, m_id in enumerate(match_ids):
         if not m_id: continue
-        
         if m_id not in shots_per_match:
             shots_per_match[m_id] = 0
-            if i < len(dates):
-                match_date_map[m_id] = dates[i]
-        
+            if i < len(dates): match_date_map[m_id] = dates[i]
         shots_per_match[m_id] += 1
 
-    # --- 2. CALCOLO RECORD (MAX TIRI) ---
-    # Storico
-    max_shots_hist = 0
-    if shots_per_match:
-        max_shots_hist = max(shots_per_match.values())
-
-    # Giornaliero
+    max_shots_hist = max(shots_per_match.values()) if shots_per_match else 0
     max_shots_daily = 0
     if last_date:
-        # Filtriamo solo i conteggi delle partite giocate nell'ultima data
-        daily_counts = [
-            count for m_id, count in shots_per_match.items() 
-            if match_date_map.get(m_id) == last_date
-        ]
-        if daily_counts:
-            max_shots_daily = max(daily_counts)
+        daily_counts = [c for m_id, c in shots_per_match.items() if match_date_map.get(m_id) == last_date]
+        max_shots_daily = max(daily_counts) if daily_counts else 0
 
-    # --- 3. LOGICA ESISTENTE (Shot Trend & Medie) ---
-    # (Questa parte rimane invariata per alimentare il grafico e la media)
+    # --- 2. AGGREGAZIONE PER NUMERO TIRO (Shot Trend) ---
     shot_agg = {}
     c_own_list = lists.get("cups_own", [])
     c_opp_list = lists.get("cups_opp", [])
@@ -510,14 +493,16 @@ def calculate_shot_performance_metrics(data):
         if sn is None or sn > 30: continue
         sn = int(sn)
         if sn not in shot_agg:
-            shot_agg[sn] = {"h_c": 0, "h_t": 0, "t_c": 0, "t_t": 0, "cups": [], "gaps": []}
+            shot_agg[sn] = {"h_c": 0, "h_t": 0, "t_c": 0, "t_t": 0, "cups_opp_sum": 0, "cups_opp_count": 0, "gaps": []}
         
         is_c = is_true(lists["centro"][i])
         shot_agg[sn]["h_t"] += 1
         if is_c: shot_agg[sn]["h_c"] += 1
         
-        if c_opp_list[i] is not None:
-            shot_agg[sn]["cups"].append(int(c_opp_list[i]))
+        # Calcolo media bicchieri avversari per questo tiro specifico
+        if c_opp_list[i] is not None and str(c_opp_list[i]).isdigit():
+            shot_agg[sn]["cups_opp_sum"] += int(c_opp_list[i])
+            shot_agg[sn]["cups_opp_count"] += 1
             
         if dates[i] == last_date:
             shot_agg[sn]["t_t"] += 1
@@ -530,57 +515,40 @@ def calculate_shot_performance_metrics(data):
             except: pass
 
     sorted_nums = sorted(shot_agg.keys())
-    
-    gap_values = []
-    for n in sorted_nums:
-        if shot_agg[n]["gaps"]:
-            avg_gap = sum(shot_agg[n]["gaps"]) / len(shot_agg[n]["gaps"])
-            gap_values.append(round(avg_gap, 2))
-        else:
-            gap_values.append(0)
-    
     labels = [f"{n}°" for n in sorted_nums]
     values_hist = [round(safe_division(shot_agg[n]["h_c"], shot_agg[n]["h_t"]), 1) for n in sorted_nums]
+    values_today = [round(safe_division(shot_agg[n]["t_c"], shot_agg[n]["t_t"]), 1) if shot_agg[n]["t_t"] > 0 else None for n in sorted_nums]
     
-    values_today = []
+    # --- 3. LOGICA FASI DINAMICHE BASATE SULLA MEDIA ---
     phase_changes = []
-    last_rounded_cups = None
+    last_avg_cups = None
 
     for n in sorted_nums:
-        if shot_agg[n]["t_t"] > 0:
-            values_today.append(round(safe_division(shot_agg[n]["t_c"], shot_agg[n]["t_t"]), 1))
-        else:
-            values_today.append(None)
-        
-        if shot_agg[n]["cups"]:
-            avg_cups = sum(shot_agg[n]["cups"]) / len(shot_agg[n]["cups"])
+        if shot_agg[n]["cups_opp_count"] > 0:
+            # Calcoliamo la media reale dei bicchieri avversari al tiro N
+            avg_cups = shot_agg[n]["cups_opp_sum"] / shot_agg[n]["cups_opp_count"]
             current_rounded = round(avg_cups)
-            if last_rounded_cups is not None and current_rounded != last_rounded_cups:
+            
+            # Se la media dei bicchieri cambia (es. da 1 a 0), segniamo il cambio fase
+            if last_avg_cups is not None and current_rounded != last_avg_cups:
                 phase_changes.append({"shot": n, "label": f"{current_rounded} cups"})
-            last_rounded_cups = current_rounded
+            
+            last_avg_cups = current_rounded
 
+    # Gap e Medie
+    gap_values = [round(sum(shot_agg[n]["gaps"])/len(shot_agg[n]["gaps"]), 2) if shot_agg[n]["gaps"] else 0 for n in sorted_nums]
     unique_m_hist = len(set(match_ids))
     avg_hist = round(len(lists.get("match_ids", [])) / unique_m_hist, 1) if unique_m_hist > 0 else 0
-    
-    daily_shots_idx = [i for i, d in enumerate(dates) if d == last_date]
-    daily_m_ids = [match_ids[i] for i in daily_shots_idx]
-    unique_m_daily = len(set(daily_m_ids)) if daily_m_ids else 0
-    avg_daily = round(len(daily_shots_idx) / unique_m_daily, 1) if unique_m_daily > 0 else 0
 
     return {
         "avg_shots_per_match": avg_hist,
-        "avg_shots_daily": avg_daily,
-        
-        # --- NUOVI CAMPI AGGIUNTI ---
         "max_shots_match_hist": max_shots_hist,
         "max_shots_match_daily": max_shots_daily,
-        # ----------------------------
-
         "shot_number_trend": {
             "labels": labels,
             "values_hist": values_hist,
             "values_today": values_today,
-            "phase_changes": phase_changes,
+            "phase_changes": phase_changes, # Contiene il momento in cui la media diventa 0
             "cup_gap": gap_values
         }
     }
@@ -1005,4 +973,149 @@ def calculate_success_by_opp_cups(data):
         "labels": labels,          # [6, 5, 4, 3, 2, 1]
         "general": general_data,   
         "by_format": formats_data  
+    }
+
+# app/main/stats_calculations.py
+
+def calculate_comeback_and_flops(data, name_map):
+    """
+    Calcola le partite con la rimonta più grande e i crolli più grandi.
+    Mostra i nomi di entrambi gli avversari e lo stato dei bicchieri al picco.
+    """
+    lists = data["liste"]
+    m_ids = lists.get("match_ids", [])
+    c_own_list = lists.get("cups_own", [])
+    c_opp_list = lists.get("cups_opp", [])
+    results = lists.get("match_result", [])
+    dates = lists.get("match_date", [])
+    teammates = lists.get("teammate_ids", [])
+    opp1_ids = lists.get("opponent1_ids", [])
+    opp2_ids = lists.get("opponent2_ids", [])
+
+    matches_history = {}
+    for i in range(len(m_ids)):
+        mid = m_ids[i]
+        if not mid: continue
+        
+        if mid not in matches_history:
+            # Recupero nomi avversari
+            o1 = name_map.get(str(opp1_ids[i]), "Nessuno")
+            o2 = name_map.get(str(opp2_ids[i]), "Nessuno")
+            opp_display = f"{o1} & {o2}" if o2 != "Nessuno" else o1
+
+            matches_history[mid] = {
+                "date": dates[i],
+                "teammate": name_map.get(str(teammates[i]), "Nessuno"),
+                "opponent": opp_display,
+                "result": results[i],
+                "snapshots": []
+            }
+        
+        try:
+            own = int(c_own_list[i])
+            opp = int(c_opp_list[i])
+            matches_history[mid]["snapshots"].append({
+                "own": own, 
+                "opp": opp, 
+                "diff": opp - own,      # Per Comeback
+                "advantage": own - opp  # Per Flop
+            })
+        except:
+            continue
+
+    comebacks = []
+    flops = []
+
+    for mid, info in matches_history.items():
+        if not info["snapshots"]: continue
+        
+        # Trova il punto di massimo svantaggio (Comeback)
+        peak_deficit = max(info["snapshots"], key=lambda x: x["diff"])
+        # Trova il punto di massimo vantaggio (Flop)
+        peak_advantage = max(info["snapshots"], key=lambda x: x["advantage"])
+        
+        # Stato finale (ultimo snapshot)
+        final_state = info["snapshots"][-1]
+
+        match_base = {
+            "date": info["date"],
+            "teammate": info["teammate"],
+            "opponent": info["opponent"],
+            "final_result": info["result"],
+            "final_score": f"{final_state['own']} - {final_state['opp']}"
+        }
+
+        if info["result"] in ["Win", "Vittoria"] and peak_deficit["diff"] > 0:
+            cb = match_base.copy()
+            cb["max_diff_val"] = peak_deficit["diff"]
+            cb["peak_score"] = f"{peak_deficit['own']} - {peak_deficit['opp']}"
+            comebacks.append(cb)
+
+        if info["result"] in ["Loss", "Sconfitta"] and peak_advantage["advantage"] > 0:
+            fl = match_base.copy()
+            fl["max_diff_val"] = peak_advantage["advantage"]
+            fl["peak_score"] = f"{peak_advantage['own']} - {peak_advantage['opp']}"
+            flops.append(fl)
+
+    top_comebacks = sorted(comebacks, key=lambda x: x["max_diff_val"], reverse=True)[:4]
+    top_flops = sorted(flops, key=lambda x: x["max_diff_val"], reverse=True)[:4]
+
+    return {"comebacks": top_comebacks, "flops": top_flops}
+
+# app/main/stats_calculations.py
+
+def calculate_overtime_metrics(data):
+    """
+    Calcola le metriche specifiche per l'overtime.
+    """
+    lists = data["liste"]
+    m_ids = lists.get("match_ids", [])
+    is_ot_list = lists.get("is_overtime", [])
+    shot_numbers = lists.get("shot_numbers", [])
+    results = lists.get("match_result", [])
+    centri = lists.get("centro", [])
+    
+    # Raggruppamento tiri per match che hanno avuto overtime
+    ot_matches = {}
+    
+    for i in range(len(m_ids)):
+        mid = m_ids[i]
+        # Verifichiamo se il tiro è avvenuto in overtime
+        # Nota: is_overtime può essere booleano o stringa 'Sì'/'No'
+        if not mid or not is_true(is_ot_list[i]):
+            continue
+            
+        if mid not in ot_matches:
+            ot_matches[mid] = {
+                "shots": [],
+                "result": results[i],
+                "centri": 0
+            }
+        
+        ot_matches[mid]["shots"].append(int(shot_numbers[i]))
+        if is_true(centri[i]):
+            ot_matches[mid]["centri"] += 1
+
+    if not ot_matches:
+        return None
+
+    total_ot_matches = len(ot_matches)
+    ot_wins = sum(1 for m in ot_matches.values() if m["result"] in ["Win", "Vittoria"])
+    
+    total_ot_shots = sum(len(m["shots"]) for m in ot_matches.values())
+    total_ot_centri = sum(m["centri"] for m in ot_matches.values())
+    
+    # Calcolo medie
+    # 1. Primo numero di tiro della partita in OT
+    first_shot_ot_avg = sum(min(m["shots"]) for m in ot_matches.values()) / total_ot_matches
+    
+    # 2. Durata media OT (Ultimo tiro - Primo tiro + 1)
+    duration_ot_avg = sum((max(m["shots"]) - min(m["shots"]) + 1) for m in ot_matches.values()) / total_ot_matches
+    
+    return {
+        "win_rate": round(safe_division(ot_wins, total_ot_matches), 1),
+        "success_rate": round(safe_division(total_ot_centri, total_ot_shots), 1),
+        "avg_start_shot": round(first_shot_ot_avg, 1),
+        "avg_duration": round(duration_ot_avg, 1),
+        "total_matches": total_ot_matches
     }

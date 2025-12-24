@@ -2,12 +2,18 @@ from flask import render_template, flash, redirect, url_for, request, session, j
 from app.models import ActiveMatch, db, CUP_DEFINITIONS, Player, PlayerRecord
 from app.main import bp
 from datetime import datetime
+from sqlalchemy import func
+from werkzeug.security import generate_password_hash
 import json
 
-# --- ROTTA TEAM MODE ---
+# --- ROTTA TEAM MODE AGGIORNATA ---
 @bp.route('/team_mode/<player_name>')
 def team_mode(player_name):
-    # Logica per visualizzare la vista compagni
+    # 1. Recuperiamo l'utente che sta navigando per vedere se è admin
+    current_user_id = session.get('player_id')
+    current_user_obj = Player.query.get(current_user_id)
+    is_super_admin = current_user_obj.is_admin if current_user_obj else False
+
     match = None
     team = None
     
@@ -22,12 +28,25 @@ def team_mode(player_name):
         flash("Nessuna partita attiva trovata.", "warning")
         return redirect(url_for('main.index', player_name=player_name))
 
-    if team == 't1': p1 = match.t1_p1; p2 = match.t1_p2
-    else: p1 = match.t2_p1; p2 = match.t2_p2
+    if team == 't1': 
+        p1 = match.t1_p1; p2 = match.t1_p2
+    else: 
+        p1 = match.t2_p1; p2 = match.t2_p2
 
     if not p1 or not p2:
         flash("Compagno di squadra non trovato.", "warning")
         return redirect(url_for('main.index', player_name=player_name))
+
+    # --- LOGICA PRIVACY / ADMIN OVERRIDE ---
+    # Identifichiamo il compagno (quello che non è player_name)
+    teammate_name = p2 if p1 == player_name else p1
+    teammate_obj = Player.query.filter_by(name=teammate_name).first()
+
+    # Se l'utente NON è admin e il compagno NON ha "Condividi" attivo, blocca l'accesso
+    if not is_super_admin:
+        if teammate_obj and not teammate_obj.edit:
+            flash(f"Il compagno {teammate_name} deve attivare 'Condividi' nella Home.", "error")
+            return redirect(url_for('main.index', player_name=player_name))
 
     return render_template('team_view.html', p1=p1, p2=p2, match_id=match.id)
 
@@ -185,18 +204,77 @@ def icon_page():
                            player_name=player.name, 
                            current_icon=player.icon)
 
-# --- ROTTA PER SALVARE L'ICONA ---
+
+
 @bp.route('/update_icon', methods=['POST'])
 def update_icon():
     if 'player_id' not in session:
         return redirect(url_for('main.login_page'))
     
-    new_icon = request.form.get('icon')
     player = Player.query.get(session['player_id'])
+    if not player:
+        return redirect(url_for('main.home'))
+
+    old_name = player.name
+    success_flag = True 
+    specific_message_sent = False # Per evitare il doppio messaggio finale
+
+    # --- 1. GESTIONE CAMBIO NOME ---
+    if 'new_name' in request.form:
+        new_name = request.form.get('new_name').strip()
+        if new_name and new_name != old_name:
+            RESERVED = ['CLOSED', 'NESSUNO', 'ADMIN', 'NULL', 'SCONOSCIUTO']
+            if new_name.upper() in RESERVED:
+                flash(f"Il nome '{new_name}' è riservato.", "error")
+                success_flag = False
+            else:
+                existing_user = Player.query.filter(
+                    func.lower(Player.name) == func.lower(new_name),
+                    Player.id != player.id
+                ).first()
+                if existing_user:
+                    flash(f"Il nome '{new_name}' è già occupato.", "error")
+                    success_flag = False
+                else:
+                    player.name = new_name
+                    # Aggiorna nomi nei match attivi
+                    matches = ActiveMatch.query.filter(
+                        (ActiveMatch.t1_p1 == old_name) | (ActiveMatch.t1_p2 == old_name) |
+                        (ActiveMatch.t2_p1 == old_name) | (ActiveMatch.t2_p2 == old_name)
+                    ).all()
+                    for m in matches:
+                        if m.t1_p1 == old_name: m.t1_p1 = new_name
+                        if m.t1_p2 == old_name: m.t1_p2 = new_name
+                        if m.t2_p1 == old_name: m.t2_p1 = new_name
+                        if m.t2_p2 == old_name: m.t2_p2 = new_name
+                    
+                    session['player_name'] = new_name
+                    flash(f"Nome cambiato in {new_name}!", "success")
+                    specific_message_sent = True
+
+    # --- 2. GESTIONE ICONA ---
+    if 'icon' in request.form:
+        player.icon = request.form.get('icon') or None
+        # Non mettiamo specific_message_sent qui, così appare il "Profilo salvato"
+
+    # --- 3. GESTIONE DRINK ---
+    if 'fav_drink' in request.form:
+        player.fav_drink = request.form.get('fav_drink', 'Birra')
+
+    # --- 4. GESTIONE PASSWORD ---
+    if 'new_password' in request.form:
+        raw_password = request.form.get('new_password').strip()
+        if raw_password:
+            player.password = generate_password_hash(raw_password)
+            flash("Password aggiornata!", "success")
+            specific_message_sent = True
+
+    # --- SALVATAGGIO FINALE (FONDAMENTALE) ---
+    db.session.commit()
     
-    if player:
-        # Se new_icon è vuoto, salviamo None (così torna alla lettera)
-        player.icon = new_icon if new_icon else None
-        db.session.commit()
+    # Mostra il messaggio generico solo se non ci sono stati errori 
+    # e se non abbiamo già inviato un messaggio specifico (nome o password)
+    if success_flag and not specific_message_sent:
+        flash("Profilo salvato correttamente.", "success")
         
-    return redirect(url_for('main.home'))
+    return redirect(url_for('main.icon_page'))

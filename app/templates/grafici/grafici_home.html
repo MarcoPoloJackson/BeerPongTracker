@@ -26,8 +26,6 @@
             <h1>Statistiche di {{ player_name }}</h1>
         </div>
 
-        <a href="{{ url_for('main.home') }}" class="btn-back">⬅ Torna alla Home</a>
-    </div>
 
     <div class="top-widgets">
         <div class="widget">
@@ -189,15 +187,27 @@
     {# --- MENU DI NAVIGAZIONE IN FONDO --- #}
     <div class="bottom-navigation">
         <div class="nav-buttons-container">
-            <a href="{{ url_for('main.grafici_formati') }}" class="btn-nav extra">
-                📊 Analisi Formati
+            <a href="{{ url_for('main.note_giocatore', player_name=player_name) }}" class="btn-nav extra">
+                <i class="fas fa-sticky-note"></i>
+                <span>Note & Tiri</span>
             </a>
+            
+            <a href="{{ url_for('main.grafici_formati') }}" class="btn-nav extra">
+                <i class="fas fa-chart-pie"></i>
+                <span>Analisi Formati</span>
+            </a>
+
             <a href="{{ url_for('main.grafici_extra') }}" class="btn-nav extra">
-                🚀 Statistiche Extra
+                <i class="fas fa-rocket"></i>
+                <span>Statistiche Extra</span>
+            </a>
+
+            <a href="{{ url_for('main.home') }}" class="btn-nav extra btn-home-full">
+                <i class="fas fa-home"></i>
+                <span>Torna alla Home</span>
             </a>
         </div>
     </div>
-
 </div> 
 {% endblock %}
 

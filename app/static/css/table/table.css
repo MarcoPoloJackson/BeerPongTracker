@@ -173,3 +173,68 @@ label.animate-miss-trigger .mini-wind, label.animate-miss-trigger .mini-leaf { a
 .animate-bordo-trigger { animation: wall-impact 0.35s ease-in-out forwards !important; }
 .animate-bordo-trigger .brick-wall { animation: brick-flash 0.35s ease-out forwards; }
 
+/* =========================================
+   MOBILE ONLY - TABLE ENHANCEMENT
+   ========================================= */
+@media (max-width: 600px) {
+    
+    /* 1. ALTEZZA TAVOLO (Il valore più importante) */
+    /* Aumentando questo, aumenti lo spazio nero vuoto al centro */
+    .game-table-visual {
+        min-height: 520px !important; /* Prima era 420px, poi 550px. Prova 600px o 650px */
+        padding: 8px 10px !important; 
+        gap: 40 !important; /* FORZA una distanza minima tra le due metà del campo */
+    }
+
+    /* 1. Togli lo spazio SOTTO la scritta "LORO" */
+    .side-label {
+        margin-bottom: -5px !important; /* Originale era 8px. Metti 0 per annullare la distanza */
+        padding-bottom: 0px !important; /* Per sicurezza */
+    }
+
+    /* 2. GRANDEZZA BICCHIERI */
+    .cup-circle {
+        width: 62px !important;
+        height: 62px !important;
+        border-width: 5px !important;
+    }
+
+    /* 3. DISTANZA TRA I BICCHIERI (Righe e Colonne) */
+    .cup-row {
+        gap: 8px !important;    /* Distanza orizzontale */
+        margin-bottom: 6px !important;
+        margin-top: 6px !important;
+    }
+    
+
+    /* 4. ICONE DENTRO I BICCHIERI (Centrate meglio) */
+    .their-side .cup-circle.selected::after,
+    .their-side .cup-circle.pending-hit::after {
+        font-size: 2.2em !important; 
+        line-height: 1 !important; /* Aiuta a centrare verticalmente l'emoji */
+        display: block;            /* Assicura che si comporti bene nel box */
+        margin-top: -2px;          /* Piccolo aggiustamento fine per centrare otticamente */
+    }
+
+    /* 4. TASTI MULTI-HIT: COMPATTI SU UNA RIGA */
+
+/* Il contenitore diretto dei bottoni è .multi-btns-wrapper */
+.multi-btns-wrapper {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important; /* 5 colonne uguali */
+    gap: 4px !important;
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+/* La classe dei bottoni è .multi-btn */
+.multi-btn {
+    padding: 4px 0 !important;
+    font-size: 1.3rem !important;
+    line-height: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    text-align: center; /* Assicura che il testo sia centrato */
+}
+}
+

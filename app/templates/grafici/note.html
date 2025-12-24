@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Note di {{ player_name }}{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/grafici/note.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="stats-container">
+    
+    <div class="stats-header">
+        <div class="header-title-wrapper">
+            {% set p_obj = players|selectattr("name", "equalto", player_name)|first if players is defined else None %}
+            <div class="header-avatar-large">
+                {% if p_obj and p_obj.icon %}{{ p_obj.icon }}{% else %}{{ player_name[:1]|upper }}{% endif %}
+            </div>
+            <h1>Diario Note di {{ player_name }}</h1>
+        </div>
+
+        <div class="bottom-navigation">
+        <div class="nav-buttons-container">
+             <a href="{{ url_for('main.grafici_home') }}" class="btn-nav extra">
+                <i class="fas fa-chart-line"></i>
+                <span>Grafici Principali</span>
+            </a>
+            
+            <a href="{{ url_for('main.grafici_home') }}" class="btn-nav extra">
+                <i class="fas fa-chart-line"></i>
+                <span>Grafici Principali</span>
+            </a>
+
+            <a href="{{ url_for('main.grafici_extra') }}" class="btn-nav extra">
+                <i class="fas fa-rocket"></i>
+                <span>Statistiche Extra</span>
+            </a>
+
+            <a href="{{ url_for('main.home') }}" class="btn-nav extra btn-home-full">
+                <i class="fas fa-home"></i>
+                <span>Torna alla Home</span>
+            </a>
+        </div>
+    </div>
+</div> 
+
+    <div class="notes-grid">
+        {% for item in notes %}
+        {% set rec = item.rec %}
+        <div class="note-card">
+            <div class="note-card-header">
+                <strong class="note-date">📅 {{ rec.timestamp.strftime('%d/%m/%Y %H:%M') }}</strong>
+                <span class="note-match-id">Match #{{ rec.match_id }}</span>
+            </div>
+            
+            <div class="note-body">
+                <div class="participants-box">
+                    <small>🤝 Compagno: <strong>{{ item.compagno or 'Nessuno' }}</strong></small> | 
+                    <small>⚔️ Contro: <strong>{{ item.avversari or 'Sconosciuti' }}</strong></small>
+                </div>
+                
+                <div class="cups-snapshot">
+                    🏟️ Situazione: <span class="cups-count own">{{ rec.cups_own }}</span> (Noi) vs <span class="cups-count opp">{{ rec.cups_opp }}</span> (Loro)
+                </div>
+
+                <p class="note-content">"{{ rec.note }}"</p>
+                
+                {% if rec.centro == 'Sì' and item.colpiti_list %}
+                <div class="hit-details">
+                    <span class="hit-label">🎯 Colpiti:</span>
+                    {% for cup in item.colpiti_list %}
+                        <span class="cup-tag">
+                            {# Pulizia nomi tecnici: trasforma 'R2 Sx' in '2 Sx' o 'Base 1' in '1' #}
+                            {{ cup | replace('R', '') | replace('T', '') | replace('LV ', '') | replace('LO ', '') | replace('Base ', '') }}
+                        </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="tags-row">
+                    <span class="tag-badge {{ 'centro' if rec.centro == 'Sì' else 'bordo' if rec.bordo == 'Sì' else 'miss' }}">
+                        {{ '🎯 CENTRO' if rec.centro == 'Sì' else '🧱 BORDO' if rec.bordo == 'Sì' else '💨 MISS' }}
+                    </span>
+                    
+                    {% if rec.bicchieri_multipli and rec.bicchieri_multipli != '-' and rec.bicchieri_multipli != '' %}
+                        <span class="tag-badge multi">⚡ {{ rec.bicchieri_multipli }}</span>
+                    {% endif %}
+                    
+                    <span class="tag-badge drink">🥤 {{ rec.bevanda or 'Birra' }}</span>
+                    
+                    {% if rec.tiro_salvezza == 'Sì' %}
+                        <span class="tag-badge salvezza">🛡️ Salvezza</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="note-footer">
+                Tiro: <strong>{{ rec.shot_number }}°</strong> | 
+                Posizione: <strong>{{ rec.postazione or 'N/A' }}</strong> | 
+                Formato: <strong>{{ rec.formato or 'Standard' }}</strong>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-notes-card">
+            <p>Non hai ancora registrato nessuna nota per i tuoi tiri.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

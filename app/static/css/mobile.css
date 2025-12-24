@@ -1,0 +1,17 @@
+/* --- OTTIMIZZAZIONE MOBILE --- */
+@media (max-width: 600px) {
+    /* Qui dentro metti solo le cose che vuoi CAMBIARE su cellulare */
+    
+    .icon-container, .container {
+        width: 95% !important; /* Occupa tutto lo schermo */
+        margin: 10px auto;
+        padding: 15px;
+    }
+
+    h2 { font-size: 1.4rem; }
+
+    /* Rendi i tasti grandi e facili da cliccare con il pollice */
+    .btn-save, .emoji-btn {
+        min-height: 45px;
+    }
+}

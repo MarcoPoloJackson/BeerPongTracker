@@ -165,30 +165,34 @@ function renderBarChart(ctxId, labels, values, datasetLabel, colors) {
     });
 }
 
-// --------------------------------------------------------
-// FUNZIONE PER GRAFICI A LINEE (Assi Dinamici + Legenda Fasi)
-// --------------------------------------------------------
 function renderLineChart(ctxId, labels, valuesHist, valuesToday, phaseChanges) {
     const ctx = document.getElementById(ctxId);
     if (!ctx) return;
     if (Chart.getChart(ctx)) Chart.getChart(ctx).destroy();
 
-    // 1. GENERAZIONE DELLA LEGENDA (Se ci sono fasi)
+    // 1. Generazione della legenda dinamica
     if (phaseChanges && phaseChanges.length > 0) {
         renderPhaseLegend(ctxId);
     }
 
     const annotations = {};
     if (phaseChanges && phaseChanges.length > 0) {
-        // Colori in ordine di fase: Inizio -> Metà -> Fine
+        /**
+         * Array colori per i singoli bicchieri (6 -> 1)
+         * Ogni indice 'i' corrisponde a un numero di bicchieri specifico
+         */
         const zoneColors = [
-            'rgba(46, 204, 113, 0.15)', // Verde (6 Bicchieri)
-            'rgba(241, 196, 15, 0.15)', // Giallo (5-4 Bicchieri)
-            'rgba(52, 152, 219, 0.15)', // Blu (3-2 Bicchieri)
-            'rgba(155, 89, 182, 0.15)'  // Viola (1 Bicchiere)
+            'rgba(46, 204, 113, 0.15)',  // 6 Bicchieri (Verde)
+            'rgba(162, 217, 106, 0.15)', // 5 Bicchieri (Lime)
+            'rgba(241, 196, 15, 0.15)',  // 4 Bicchieri (Giallo)
+            'rgba(230, 126, 34, 0.15)',  // 3 Bicchieri (Arancione)
+            'rgba(52, 152, 219, 0.15)',  // 2 Bicchieri (Blu)
+            'rgba(155, 89, 182, 0.15)'   // 1 Bicchiere (Viola)
         ];
 
         let lastIndex = 0;
+        
+        // Disegniamo le zone colorate per ogni fase rilevata
         phaseChanges.forEach((change, i) => {
             let xIndex = labels.indexOf(change.shot + "°");
             if (xIndex !== -1) {
@@ -196,19 +200,23 @@ function renderLineChart(ctxId, labels, valuesHist, valuesToday, phaseChanges) {
                     type: 'box',
                     xMin: lastIndex,
                     xMax: xIndex,
-                    backgroundColor: zoneColors[i % zoneColors.length],
+                    backgroundColor: zoneColors[i] || 'rgba(149, 165, 166, 0.1)',
                     borderWidth: 0,
                 };
                 lastIndex = xIndex;
             }
         });
 
-        // Ultima zona (spesso la chiusura)
+        /**
+         * ZONA FINALE (0 Bicchieri / Finita)
+         * Si attiva dall'ultimo cambio di fase fino alla fine dell'asse X.
+         * Corrisponde al colore rosso della legenda.
+         */
         annotations['zone_final'] = {
             type: 'box',
             xMin: lastIndex,
             xMax: labels.length - 1,
-            backgroundColor: 'rgba(231, 76, 60, 0.15)', // Rosso (Finale)
+            backgroundColor: 'rgba(231, 76, 60, 0.15)', // Rosso
             borderWidth: 0
         };
     }
@@ -241,28 +249,37 @@ function renderLineChart(ctxId, labels, valuesHist, valuesToday, phaseChanges) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // FONDAMENTALE PER ALLUNGARE IL GRAFICO
+            maintainAspectRatio: false,
             plugins: {
                 annotation: { annotations: annotations },
-                legend: { display: true, position: 'top', align: 'end' }
+                legend: { 
+                    display: true, 
+                    position: 'top', 
+                    align: 'end',
+                    labels: { boxWidth: 12, usePointStyle: true }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
             },
             scales: {
                 y: { 
                     beginAtZero: false, 
                     display: true,
-                    title: { display: true, text: 'Successo %', color: '#7f8c8d' },
-                    ticks: { callback: v => v + "%", color: '#7f8c8d', font: { size: 12, weight: 'bold' } },
+                    title: { display: true, text: 'Successo %', color: '#7f8c8d', font: { weight: 'bold' } },
+                    ticks: { callback: v => v + "%", color: '#7f8c8d' },
                     grid: { color: 'rgba(0,0,0,0.05)' }
                 },
-                x: { grid: { display: false }, ticks: { color: '#7f8c8d' } }
+                x: { 
+                    grid: { display: false }, 
+                    ticks: { color: '#7f8c8d', maxTicksLimit: 20 } 
+                }
             }
         }
     });
 }
 
-// --------------------------------------------------------
-// NUOVA FUNZIONE: CREA LA LEGENDA SOTTO IL GRAFICO
-// --------------------------------------------------------
 function renderPhaseLegend(ctxId) {
     const canvas = document.getElementById(ctxId);
     if (!canvas) return;
@@ -270,33 +287,37 @@ function renderPhaseLegend(ctxId) {
     const wrapper = canvas.parentElement; 
     const card = wrapper.parentElement;
     
-    // Evita di creare la legenda due volte se ricarichi la pagina
-    if (card.querySelector('.phase-legend')) return;
+    // Rimuove eventuali legende esistenti prima di crearne una nuova
+    const existingLegend = card.querySelector('.phase-legend');
+    if (existingLegend) existingLegend.remove();
 
-    // Questa legenda spiega i colori definiti in zoneColors sopra.
-    // Ordine logico: 6 -> 5/4 -> 3/2 -> 1
     const legendHtml = `
         <div class="phase-legend">
-            <span class="legend-title">Fasi Partita (Bicchieri):</span>
+            <span class="legend-title">Bicchieri:</span>
             <div class="legend-item">
                 <span class="dot" style="background: rgba(46, 204, 113, 0.8)"></span> 6
             </div>
             <div class="legend-item">
-                <span class="dot" style="background: rgba(241, 196, 15, 0.8)"></span> 5-4
+                <span class="dot" style="background: rgba(162, 217, 106, 0.8)"></span> 5
             </div>
             <div class="legend-item">
-                <span class="dot" style="background: rgba(52, 152, 219, 0.8)"></span> 3-2
+                <span class="dot" style="background: rgba(241, 196, 15, 0.8)"></span> 4
+            </div>
+            <div class="legend-item">
+                <span class="dot" style="background: rgba(230, 126, 34, 0.8)"></span> 3
+            </div>
+            <div class="legend-item">
+                <span class="dot" style="background: rgba(52, 152, 219, 0.8)"></span> 2
             </div>
             <div class="legend-item">
                 <span class="dot" style="background: rgba(155, 89, 182, 0.8)"></span> 1
             </div>
             <div class="legend-item">
-                <span class="dot" style="background: rgba(231, 76, 60, 0.8)"></span> 0
+                <span class="dot" style="background: rgba(231, 76, 60, 0.8)"></span> Finita
             </div>
         </div>
     `;
 
-    // Inserisce l'HTML dopo il contenitore del grafico
     wrapper.insertAdjacentHTML('afterend', legendHtml);
 }
 

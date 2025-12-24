@@ -268,21 +268,7 @@
     100% { box-shadow: 0 0 20px rgba(244, 63, 94, 0.4); }
 }
 
-/* --- RESPONSIVE MOBILE --- */
-@media (max-width: 450px) {
-    /* Su schermi molto piccoli (cellulari verticali), magari torniamo in colonna se i nomi non ci stanno */
-    /* Ma proviamo a tenerli affiancati il più possibile */
-    .slot-box {
-        padding: 0 5px;
-    }
-    .player-link {
-        font-size: 0.8em;
-    }
-    .mini-avatar {
-        width: 24px; height: 24px;
-        font-size: 0.7em;
-    }
-}
+
 
 /* Contenitore principale della griglia */
 .tavoli-grid {
@@ -377,4 +363,87 @@
     color: #ef4444;
     transform: scale(1.1) rotate(5deg);
     box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+
+/* ========================================================
+   FIX SINGLE PLAYER MODE (VISUALIZZAZIONE CORRETTA)
+   ======================================================== */
+
+/* 1. Il Contenitore della Squadra */
+/* Deve mantenere lo spazio verticale di 2 giocatori per non far collassare il tavolo,
+   ma deve centrare l'unico giocatore rimasto. */
+.team-col.single-player-layout {
+    display: flex;
+    flex-direction: column;  /* Impila verticalmente */
+    justify-content: center; /* Centra verticalmente nello spazio */
+    align-items: center;     /* Centra orizzontalmente */
+    width: 100%;             
+    
+    /* Riserva lo spazio che occuperebbero normalmente 2 slot + spazio (50+50+10) */
+    min-height: 110px;       
+    height: 110px;           /* Forza l'altezza per evitare espansioni anomale */
+}
+
+/* 2. La Cella del Giocatore Singolo */
+.single-player-layout .slot-box {
+    /* BLOCCO DIMENSIONI VERTICALI */
+    flex: none !important;        /* DISABILITA l'espansione flex (flex-grow) */
+    height: 50px !important;      /* Forza altezza standard */
+    min-height: 50px !important;
+    max-height: 50px !important;
+    
+    /* ESPANSIONE ORIZZONTALE */
+    width: 95% !important;        /* Occupa quasi tutta la larghezza */
+    max-width: none !important;
+    
+    /* CENTRATURA CONTENUTO INTERNO */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    
+    /* RESET MARGINI */
+    margin: 0 !important; 
+    
+    /* Estetica opzionale: bordo leggermente più spesso per evidenziare il singolo */
+    border-width: 2px;
+}
+
+/* 3. Nascondi ASSOLUTAMENTE lo slot CLOSED o vuoto in questa modalità */
+.single-player-layout .slot-box:empty,
+.single-player-layout .slot-box.hidden-slot,
+.single-player-layout .slot-box[style*="display: none"] {
+    display: none !important;
+}
+
+/* 4. Stile interno (Testo più evidente) */
+.single-player-layout .player-name-text {
+    font-size: 1.2em;
+    font-weight: 800;
+}
+
+/* 5. Sposta il tasto X (Rimuovi) leggermente a destra */
+.single-player-layout .btn-kick {
+    margin-left: 15px;
+}
+
+@media (max-width: 600px) {
+    .home-container { padding: 10px; }
+    
+    .matches-grid {
+        grid-template-columns: 1fr; /* Forza un tavolo solo per riga */
+        gap: 20px;
+    }
+    
+    .match-card {
+        max-width: 100%; /* Usa tutta la larghezza del telefono */
+        min-height: 480px; /* Riduciamo leggermente l'altezza */
+    }
+
+    /* Rendi i nomi dei giocatori più grandi perché ora c'è spazio */
+    .player-name-text { font-size: 1rem; }
+    .slot-box { height: 55px; } /* Più facile da cliccare */
+    
+    .page-title { font-size: 2.2em; }
 }

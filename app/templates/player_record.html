@@ -13,7 +13,7 @@ preload {% if redemption_info and redemption_info.active and redemption_info.is_
     <link rel="stylesheet" href="{{ url_for('static', filename='css/table/formato.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/table/multi_hits.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overtime.css') }}">
-    {# Il CSS specifico per il tasto team ora è in main.css #}
+    {# Il CSS specifico per il tasto team ora è in main.css (header-team-badge) #}
 {% endblock %}
 
 {% block content %}
@@ -32,46 +32,59 @@ preload {% if redemption_info and redemption_info.active and redemption_info.is_
     {% if not game_result %}
     <div class="container">
         
-        {# HEADER #}
-        <div class="nav-header">
-            <a href="{{ url_for('main.home') }}" class="btn-back">⬅ Esci</a>
-            <div style="font-weight: 800; font-size: 1.1em; color: #34495e;">{{ player_name }}</div>
-            <div style="width: 40px; height: 40px;"></div> 
+        {# HEADER RIVOLUZIONATO: 3 COLONNE (Esci - Squadra - Nome) #}
+        <div class="nav-header" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            
+            <a href="{{ url_for('main.home') }}" class="btn-back" target="_top">⬅ Esci</a>
+
+            {% if teammate and teammate != 'CLOSED' %}
+                {% if is_split_context %}
+                    {# Caso: Dentro Iframe (Vista Doppia) #}
+                    <a href="{{ url_for('main.index', player_name=player_name) }}" target="_top" class="header-team-badge active-green" style="text-decoration: none; text-align: center; flex-grow: 1; max-width: 200px;">
+                        <small style="display:block; font-size:0.7em;">Vista Doppia</small>
+                        <strong style="font-size:0.9em;">Torna Singolo</strong>
+                    </a>
+                {% else %}
+                    {# Caso: Vista Normale (Cliccabile per menu) #}
+                    <div id="team-header-btn" 
+                         class="header-team-badge {% if not teammate_obj.edit and not is_super_admin %}locked{% endif %}"
+                         onclick="handleTeamClick()"
+                         style="text-align: center; cursor: pointer; flex-grow: 1; max-width: 220px; background: #e3f2fd; border: 1px solid #90caf9; padding: 5px 10px; border-radius: 50px; color: #1565c0;">
+                        
+                        <div style="line-height: 1;">
+                            <small style="font-size: 0.7em; opacity: 0.8; text-transform: uppercase;">In squadra con</small>
+                        </div>
+                        <div style="line-height: 1.2; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <strong id="teammate-name-display" style="font-size: 1em;">{{ teammate }}</strong>
+                            {% if not teammate_obj.edit and not is_super_admin %}
+                                <span style="font-size: 0.8em;">🔒</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                {# Spaziatore vuoto se non c'è squadra, per mantenere il nome a destra #}
+                <div style="flex-grow: 1;"></div>
+            {% endif %}
+
+            <div class="header-player-name" style="text-align: right;">
+                <div style="font-weight: 800; font-size: 1.1em; color: #34495e;">{{ player_name }}</div>
+            </div>
         </div>
 
-        {# PULSANTE SQUADRA (Logica spostata in JS esterno) #}
-        {% if teammate %}
-            {% if is_split_context %}
-                {# Dentro Iframe #}
-                <a href="{{ url_for('main.index', player_name=player_name) }}" target="_top" style="text-decoration: none; color: inherit; display: block;">
-                    <div class="info-card info-team split-active-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div><strong>↩️ TORNA A SINGOLO:</strong> {{ player_name }}</div>
-                            <div class="split-badge active">📱 VISTA DOPPIA ATTIVA</div>
-                        </div>
-                    </div>
-                </a>
-            {% else %}
-                {# Vista Normale - Il click è gestito da handleTeamClick in logic.js #}
-                <div id="team-btn-container" class="info-card info-team disabled-card" onclick="handleTeamClick()">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>🔗 SQUADRA:</strong> Con <strong id="teammate-name-display">{{ teammate }}</strong>
-                        </div>
-                        <div class="split-badge" id="team-status-badge">🔒 BLOCCATO</div>
-                    </div>
-                    <div id="team-error-msg" style="font-size:0.8em; color:#c0392b; margin-top:5px; display:none;">
-                        Il compagno deve attivare "Condividi" nella Home.
-                    </div>
-                </div>
-            {% endif %}
+        {# Messaggio di errore discreto (se il compagno è bloccato) #}
+        {% if teammate and teammate != 'CLOSED' and not is_split_context and not teammate_obj.edit and not is_super_admin %}
+            <div id="team-error-msg" style="text-align: center; font-size: 0.75em; color: #c0392b; margin-top: -15px; margin-bottom: 15px; opacity: 0.9;">
+            </div>
         {% endif %}
 
         {% include 'includes/redemption.html' %}
+        
+        {# ... QUI INIZIA IL FORM GIOCO (NON MODIFICATO) ... #}
 
         {# FORM GIOCO #}
         <form action="{{ url_for('main.add_record', player_name=player_name) }}" method="POST" id="gameForm">
-            <div class="form-group">
+            <div class="form-group spacing-top">
                 <div class="section-title">Risultato del Tiro</div>
                 <div class="result-options">
                     <input type="radio" id="opt_miss" name="risultato_tiro" value="Miss" onclick="handleResultClick('Miss')">
@@ -246,6 +259,9 @@ preload {% if redemption_info and redemption_info.active and redemption_info.is_
     const gameResult = "{{ game_result if game_result else '' }}";
     const triggerAnimation = {{ show_animation | tojson | default('false') }};
     const myMatchId = {{ defaults.match_id | default(0) }};
+
+
+    window.isSuperAdmin = {{ is_super_admin | tojson | default('false') }};
 
     // ==========================================
     //  SCRIPT MEMORIA POSTAZIONE (NUOVO)

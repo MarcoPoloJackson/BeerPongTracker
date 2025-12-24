@@ -6,7 +6,7 @@
     background: white;
     border-radius: 20px;
     padding: 15px 25px;
-    margin-bottom: 40px;
+    margin: 10px auto 40px auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -14,6 +14,8 @@
     border: 1px solid rgba(0,0,0,0.02);
     position: relative;
     z-index: 10;
+    width: 100%;
+    max-width: 1200px;
 }
 
 /* --- LATO SINISTRO: IDENTITÀ --- */
@@ -21,21 +23,23 @@
     display: flex;
     align-items: center;
     gap: 15px;
+    flex: 1;
 }
 
 .identity-avatar {
     width: 50px;
     height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #2c3e50, #4ca1af); /* Gradiente serio/profondo */
-    color: white;
+    border-radius: 14px; /* Stile icona app moderna come da immagine */
+    background: #f1f5f9;
+    color: #1e293b;
     font-size: 1.5em;
     font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(44, 62, 80, 0.3);
-    border: 3px solid #f0f2f5; /* Anello esterno */
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.05);
+    flex-shrink: 0;
 }
 
 .identity-info {
@@ -49,6 +53,8 @@
     color: #94a3b8;
     font-weight: 700;
     letter-spacing: 0.5px;
+    line-height: 1;
+    margin-bottom: 2px;
 }
 
 .id-name {
@@ -56,6 +62,9 @@
     font-weight: 900;
     color: #1e293b;
     line-height: 1.1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 /* --- LATO DESTRO: CONTROLLI --- */
@@ -155,18 +164,209 @@
 
 .logout-icon { font-size: 1.1em; line-height: 1;}
 
-/* Responsive per mobile: impila se necessario */
-@media (max-width: 768px) {
+/* ==========================================
+   ADATTAMENTO MOBILE (HEADER - FIX FINALE)
+   ========================================== */
+@media (max-width: 600px) {
+
+    /* 1. RESET DEL BODY (Per pulire eredità dal login o base) */
+    body {
+        display: block !important; /* Disabilita il flex che usavi nel login */
+        padding: 0 !important;
+        overflow-x: hidden !important;
+        background-color: var(--main-bg, #f0f2f5); /* Assicura che lo sfondo copra tutto */
+    }
+
+    /* 2. IL CONTENITORE PRINCIPALE (La chiave del problema) */
+    .container, .home-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 10px !important; /* Un po' di aria ai lati */
+        
+        /* FLEXBOX MAGICO PER CENTRARE TUTTO */
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important; /* <--- QUESTO CENTRA GLI ELEMENTI ORIZZONTALMENTE */
+    }
+
+    /* Assicurati che gli elementi figli non siano stretti a sinistra */
+    .dashboard-header, 
+    .page-title, 
+    .page-subtitle, 
+    .action-bar, 
+    .section-label,
+    .matches-grid,
+    .history-grid {
+        width: 100% !important; /* O 95% se preferisci margini */
+        max-width: 100% !important;
+        text-align: center; /* Centra anche i testi dei titoli */
+    }
+    
+    /* I bottoni grandi blu e bianco */
+    .btn-main {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 5px 0 !important;
+    }
+}
+
+
+    @media (max-width: 600px) {
+
+    
+
+    /* 1. SCHEDA HEADER (PIÙ COMPATTA) */
     .dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
+        width: 100% !important;
+        margin: 5px auto 10px auto !important; /* Meno margine sotto */
+        
+        /* PADDING RIDOTTO: 15px sopra/lati, ma solo 12px sotto per accorciarla */
+        padding: 15px 20px 12px 20px !important; 
+        
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important; /* Meno spazio tra nome e tasto condividi */
+        align-items: center;
+        position: relative !important; 
+        box-sizing: border-box !important;
+        overflow: hidden !important; 
+        height: auto !important;
     }
+
+    /* 2. LOGOUT BUTTON (SIMBOLO VISIBILE) */
+    .btn-logout {
+        position: absolute !important;
+        top: 15px !important;    
+        right: 20px !important;  
+        
+        width: 40px !important;
+        height: 40px !important;
+        
+        /* Flexbox per centrare tutto */
+        display: flex !important;
+        justify-content: center !important; /* Centra Orizzontalmente */
+        align-items: center !important;     /* Centra Verticalmente */
+        
+        padding: 0 !important;
+        margin: 0 !important;
+        
+        border-radius: 14px !important;
+        background: #fff1f2 !important;
+        border: 1px solid #fecdd3 !important;
+        z-index: 100;
+        
+        font-size: 0 !important; /* Nasconde testo grezzo */
+    }
+
+    /* Nascondi il testo se hai fatto la modifica HTML */
+    .btn-logout .logout-text, 
+    .btn-logout span:not(.logout-icon) {
+        display: none !important;
+    }
+
+    /* STILE ICONA */
+    .btn-logout .logout-icon {
+        font-size: 22px !important; /* Dimensione giusta */
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: #e11d48 !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        
+        /* --- CORREZIONE OTTICA MANUALE --- */
+        /* Se ti sembra ancora spostata a sinistra, aumenta questo numero (es. 1px, 2px) */
+        /* Se ti sembra a destra, usa numeri negativi (es. -1px) */
+        transform: translateX(0px); 
+    }
+
+    /* 3. INFO UTENTE (SINISTRA) */
+    .player-identity {
+        width: 100% !important;
+        padding-right: 50px !important; 
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+
+    .identity-avatar {
+        width: 40px !important; 
+        height: 40px !important;
+        flex-shrink: 0 !important;
+        border-radius: 14px !important;
+    }
+
+    .identity-info {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        min-width: 0 !important;
+    }
+    
+    .id-label {
+        font-size: 0.65em !important;
+        margin-bottom: 2px !important;
+    }
+
+    .id-name {
+        font-size: 1.1em !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    /* 4. TASTO CONDIVIDI (FIX DEL FORM INVISIBILE) */
     .header-controls {
-        width: 100%;
-        justify-content: space-between;
+        width: 100% !important;
+        max-width: 100%;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        align-items: center;
     }
+
+    /* RESET DEL FORM: Il colpevole dello sbordamento */
+    .toggle-form {
+        width: 95% !important;  /* Forza larghezza esatta */
+        margin: 0 !important;    /* Rimuove margini fantasma */
+        padding: 0 !important;
+        box-sizing: border-box !important; /* Include i bordi nel calcolo */
+        display: block !important;
+    }
+
+    /* Il contenitore grigio */
+    .edit-toggle-wrapper {
+        width: 100% !important; 
+        height: 40px !important; /* Un po' più sottile per risparmiare spazio verticale */
+        
+        box-sizing: border-box !important; /* FONDAMENTALE */
+        
+        display: flex !important;
+        justify-content: center !important; 
+        align-items: center !important;
+        gap: 10px !important;
+        
+        padding: 0 15px !important;
+        margin: 0 !important; /* Assicura nessun margine esterno */
+        
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+    }
+
     .toggle-label-text {
-        font-size: 0.75em;
+        font-size: 0.9em !important;
+        white-space: nowrap !important;
+        color: #475569 !important;
+        font-weight: 700 !important;
+    }
+    
+    .toggle-visual {
+        transform: scale(0.9); /* Switch leggermente più piccolo */
     }
 }

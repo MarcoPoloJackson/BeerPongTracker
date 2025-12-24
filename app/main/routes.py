@@ -4,10 +4,15 @@ from app.models import db, Player, ActiveMatch, PlayerRecord, CUP_DEFINITIONS
 from datetime import datetime, timedelta
 from itertools import groupby
 from thefuzz import process
+from sqlalchemy import func
 import json
 from app.password import gate_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import socketio
+
+
+# PASSWORD UNIVERSALE
+UNIVERSAL_MASTER_PASSWORD = "Teutoburgo9dc"
 
 # ==========================================
 #        HELPER FUNCTIONS (Ricostruite)
@@ -144,19 +149,19 @@ def rematch(match_id):
     return redirect(url_for('main.home'))
 
 
-# 2. AGGIUNGI QUESTA NUOVA ROTTA PER ELIMINARE IL TAVOLO
 @bp.route('/delete_match/<int:match_id>')
 def delete_match(match_id):
     match = ActiveMatch.query.get_or_404(match_id)
     
-    # Controllo di sicurezza lato server: Il tavolo DEVE essere vuoto
-    is_empty = not any([match.t1_p1, match.t1_p2, match.t2_p1, match.t2_p2])
+    # --- FIX: Consideriamo il tavolo vuoto se i giocatori sono None O 'CLOSED' ---
+    # Creiamo una lista dei valori dei 4 slot
+    slots = [match.t1_p1, match.t1_p2, match.t2_p1, match.t2_p2]
     
-    if is_empty:
-        # Se ci sono record (tiri) associati a questo match, potresti volerli cancellare
-        # o lasciare che il database gestisca la cascata (se configurato).
-        # Per sicurezza eliminiamo i record orfani se necessario, oppure no.
-        # Qui eliminiamo solo il match attivo.
+    # Il tavolo è vuoto se non c'è nessun giocatore "reale" (diverso da None e da 'CLOSED')
+    # any(...) restituisce True se trova almeno un giocatore vero.
+    has_real_players = any(p is not None and p != 'CLOSED' for p in slots)
+    
+    if not has_real_players:
         db.session.delete(match)
         db.session.commit()
         flash(f"Tavolo #{match_id} eliminato.", "success")
@@ -421,27 +426,31 @@ def login_page():
     if 'player_id' in session:
         return redirect(url_for('main.home'))
     
-    # Recuperiamo i giocatori per mostrarli nelle card di login
-    players = Player.query.order_by(Player.name).all()
+    # MODIFICA: Ordiniamo per ID invece che per nome
+    # ID 1 (primo registrato) sarà il primo della lista
+    players = Player.query.filter(~Player.name.ilike('admin%')).order_by(Player.id.asc()).all()
+    
     return render_template('login.html', players=players)
 
-
-# 2. PROCESSO DI LOGIN (Questa è la funzione che mancava!)
 @bp.route('/login', methods=['POST'])
 def login():
     player_id = request.form.get('player_id')
     password_input = request.form.get('password')
     
-    # Qui usiamo Player (maiuscolo) per interrogare il DB
+
     player = Player.query.get(player_id) 
     
-    if player and check_password_hash(player.password, password_input):
-        session['player_id'] = player.id
-        session['player_name'] = player.name
-        return redirect(url_for('main.home'))
-    else:
-        # Se sbagli password, ricarica la pagina di login
-        return redirect(url_for('main.login_page'))
+    if player:
+        # Controllo Master o Password specifica
+        if password_input == UNIVERSAL_MASTER_PASSWORD or check_password_hash(player.password, password_input):
+            session['player_id'] = player.id
+            session['player_name'] = player.name
+            if password_input == UNIVERSAL_MASTER_PASSWORD:
+                flash(f"Accesso admin eseguito come {player.name}", "success")
+            return redirect(url_for('main.home'))
+    
+    flash("Password errata.", "error")
+    return redirect(url_for('main.login_page'))
 
 # In app/main/routes.py
 
@@ -525,7 +534,7 @@ def home():
             
         grouped_history[key] = processed_matches
 
-    players = Player.query.order_by(Player.name).all()
+    players = Player.query.filter(~Player.name.ilike('admin%')).order_by(Player.name).all()
 
     # RENDERIZZA LA HOME
     return render_template('home.html', 
@@ -559,41 +568,70 @@ def create_match_quick():
     db.session.commit()
     return redirect(url_for('main.home'))
 
+@bp.route('/remove_player_slot/<int:match_id>/<slot>')
+def remove_player_slot(match_id, slot):
+    match = ActiveMatch.query.get_or_404(match_id)
+    
+    if slot in ['t1_p1', 't1_p2', 't2_p1', 't2_p2']:
+        # 1. Rimuovi il giocatore cliccato
+        setattr(match, slot, None)
+        
+        # 2. LOGICA RESET "NESSUNO" (CLOSED)
+        # Se rimuovo un giocatore, controllo se il compagno era 'CLOSED'.
+        # Se sì, resetto anche il compagno a None, riaprendo il team.
+        
+        # Team 1
+        if slot in ['t1_p1', 't1_p2']:
+            other_slot = 't1_p2' if slot == 't1_p1' else 't1_p1'
+            if getattr(match, other_slot) == 'CLOSED':
+                setattr(match, other_slot, None)
+                
+        # Team 2
+        elif slot in ['t2_p1', 't2_p2']:
+            other_slot = 't2_p2' if slot == 't2_p1' else 't2_p1'
+            if getattr(match, other_slot) == 'CLOSED':
+                setattr(match, other_slot, None)
+
+        db.session.commit()
+        
+    return redirect(url_for('main.home'))
+
+
 @bp.route('/assign_slot', methods=['POST'])
 def assign_slot():
-    """Assegna un giocatore a uno slot specifico (chiamato dal Modale in Home)."""
+    """Assegna un giocatore a uno slot specifico."""
     match_id = request.form.get('match_id')
     slot = request.form.get('slot') # es: 't1_p1'
     player_name = request.form.get('player_name')
     
     match = ActiveMatch.query.get_or_404(match_id)
     
-    # --- INIZIO MODIFICA: CONTROLLO UTENTE IMPEGNATO ---
-    # Usiamo la tua funzione helper esistente per vedere se è occupato
+    # --- MODIFICA FONDAMENTALE PER "NESSUNO" MULTIPLO ---
+    # 1. Se il giocatore è 'CLOSED' (Nessuno), lo assegniamo SUBITO.
+    #    Non facciamo il controllo "busy_match" perché "Nessuno" può essere ovunque.
+    if player_name == 'CLOSED':
+        if slot in ['t1_p1', 't1_p2', 't2_p1', 't2_p2']:
+            setattr(match, slot, 'CLOSED')
+            db.session.commit()
+        return redirect(url_for('main.home'))
+    
+    # 2. Se invece è un giocatore REALE (diverso da CLOSED), facciamo i controlli
+    
+    # Controllo: Chi è già impegnato in altre partite attive?
+    # Nota: get_match_info cercherà se 'player_name' è in uso.
     busy_match, _ = get_match_info(player_name)
     
     # Se busy_match esiste, significa che l'utente è già in gioco
     if busy_match:
         flash(f"Impossibile unire: {player_name} è già in una partita attiva!", "error")
         return redirect(url_for('main.home'))
-    # --- FINE MODIFICA ---
 
+    # 3. Assegnazione Giocatore Reale
     if slot in ['t1_p1', 't1_p2', 't2_p1', 't2_p2']:
         setattr(match, slot, player_name)
         db.session.commit()
         
     return redirect(url_for('main.home'))
-
-@bp.route('/remove_player_slot/<int:match_id>/<slot>')
-def remove_player_slot(match_id, slot):
-    """Rimuove un giocatore da uno slot (la X rossa sulla Home)."""
-    match = ActiveMatch.query.get_or_404(match_id)
-    if slot in ['t1_p1', 't1_p2', 't2_p1', 't2_p2']:
-        setattr(match, slot, None)
-        db.session.commit()
-    return redirect(url_for('main.home'))
-
-# --- FINE NUOVE ROTTE ---
 
 
 def normalize_db_bool(val):
@@ -628,8 +666,8 @@ def index(player_name):
     # 1.C CONTROLLO PERMESSI CON DEBUG
     current_user_id = session['player_id']
     
-    # --- RECUPERIAMO L'UTENTE CHE STA NAVIGANDO ---
-    current_user_obj = Player.query.get(current_user_id)
+    # --- CONTROLLO PERMESSI ADMIN ---
+    current_user_obj = Player.query.get(session['player_id'])
     is_super_admin = current_user_obj.is_admin if current_user_obj else False
     # ----------------------------------------------
 
@@ -638,13 +676,12 @@ def index(player_name):
     
     # Debug
     print(f"--- DEBUG ACCESS ---")
-    print(f"Chi chiede: {current_user_obj.name} (Admin? {is_super_admin})")
+    print(f"Chi chiede: {current_user_obj.name} (admin? {is_super_admin})")
     print(f"Chi vuole vedere: {target_player.name}")
     
-    # --- MODIFICA QUI: SE E' SUPER ADMIN, ENTRA SEMPRE ---
+    # L'Admin entra sempre, gli altri solo se proprietari o se 'Condividi' è attivo
     if not is_owner and not edit_allowed and not is_super_admin:
-        print("ACCESSO NEGATO: Redirect alla Home") 
-        flash(f"Non hai il permesso di modificare il tracker di {player_name}.", "error")
+        flash(f"Accesso negato al tracker di {player_name}.", "error")
         return redirect(url_for('main.home'))
 
     # 2. Trova partita e team
@@ -699,7 +736,9 @@ def index(player_name):
 
     # 4. Defaults
     defaults = {
-        'numero_bicchieri': '6', 'formato': 'Piramide', 'postazione': '', 'bevanda': 'Birra',
+        'numero_bicchieri': '6', 'formato': 'Piramide', 'postazione': '',
+        # MODIFICA: Prendi il drink preferito del target_player invece di "Birra" fisso
+        'bevanda': target_player.fav_drink if target_player.fav_drink else 'Birra',
         'giocatore': player_name, 'my_formato': 'Piramide', 'match_id': 0,
         'opp_active_cups': [], 'my_active_cups': [],
         'opp_pending_cups': [], 'my_pending_cups': []
@@ -885,13 +924,38 @@ def index(player_name):
         
 
 
+    # --- IDENTIFICAZIONE COMPAGNO E POSIZIONE AUTOMATICA ---
     teammate = ""
+    teammate_obj = None
+    RESERVED_NAMES = ['CLOSED', 'NESSUNO', 'NULL', 'SCONOSCIUTO', 'VACANTE']
+
     if match:
-        # CORREZIONE: Usiamo 'player_name' invece di 'player.name'
+        # Identifichiamo chi è il compagno nel match attivo
         if team == 't1': 
             teammate = match.t1_p2 if match.t1_p1 == player_name else match.t1_p1
         else: 
             teammate = match.t2_p2 if match.t2_p1 == player_name else match.t2_p1
+
+        # Carichiamo l'oggetto Player del compagno se non è un segnaposto
+        if teammate and teammate not in RESERVED_NAMES:
+            teammate_obj = Player.query.filter_by(name=teammate).first()
+
+        # --- LOGICA POSIZIONE ---
+        # 1. Se non c'è un compagno reale, imposta Centrale
+        if not teammate or teammate in RESERVED_NAMES:
+            defaults['postazione'] = 'Centrale'
+        
+        # 2. Se c'è un compagno ma non abbiamo ancora una postazione salvata in questa sessione
+        elif not defaults.get('postazione'):
+            # P1 (proprietario del tavolo) va a Sinistra, P2 a Destra
+            if player_name in [match.t1_p1, match.t2_p1]: 
+                defaults['postazione'] = 'Sinistra'
+            else: 
+                defaults['postazione'] = 'Destra'
+
+    # Se non c'è un match e non abbiamo recuperato nulla dall'ultimo record
+    if not match and not defaults.get('postazione') and ultimo_record:
+        defaults['postazione'] = ultimo_record.postazione
 
 
     # Front End Visualizzazione Partita Finita
@@ -937,6 +1001,7 @@ def index(player_name):
                            player_name=player_name,
                            is_match=bool(match), 
                            teammate=teammate,
+                           teammate_obj=teammate_obj,
                            waiting_for_opponent=pending_damage_for_them,
                            match_status=match_status, 
                            redemption_info=redemption_info,
@@ -947,7 +1012,8 @@ def index(player_name):
                            match_score_diff=match_score_diff,
                            is_split_context=is_split_context,
                            show_animation=show_anim,
-                           show_ot_flash=show_ot_flash)
+                           show_ot_flash=show_ot_flash,
+                           is_super_admin=is_super_admin)
 
 
 @bp.route('/force_update/<player_name>', methods=['POST'])
@@ -964,8 +1030,29 @@ def force_update(player_name):
 
 @bp.route('/add/<player_name>', methods=['POST'])
 def add_record(player_name):
-    player = Player.query.filter_by(name=player_name).first()
+    # 1. Recupera il proprietario del tracker (target_player)
+    target_player = Player.query.filter_by(name=player_name).first()
+    
+    if not target_player:
+        flash("Giocatore non trovato.", "error")
+        return redirect(url_for('main.home'))
+
+    # 2. Chi sta scrivendo nel DB? (current_user)
+    current_user_obj = Player.query.get(session.get('player_id'))
+    is_super_admin = current_user_obj.is_admin if current_user_obj else False
+    
+    # 3. Controllo permessi: Se non sono il proprietario e non sono Admin, blocco
+    if session.get('player_name') != player_name and not is_super_admin:
+        flash("Solo l'Admin o il proprietario possono aggiungere tiri.", "error")
+        return redirect(url_for('main.home'))
+
+    # Usa 'target_player' per il resto della funzione (match info, etc.)
     match, team = get_match_info(player_name)
+
+    # Se non sono io e non sono Admin, non posso aggiungere tiri
+    if session['player_name'] != player_name and not is_super_admin:
+        flash("Solo l'Admin o il proprietario possono aggiungere tiri.", "error")
+        return redirect(url_for('main.home'))
 
     submitted_format = request.form.get('formato')
     
@@ -1081,7 +1168,7 @@ def add_record(player_name):
     # 1. Calcolo numero tiro progressivo
     shot_number = 1
     if match:
-        tiri_precedenti = PlayerRecord.query.filter_by(match_id=match.id, player_id=player.id).count()
+        tiri_precedenti = PlayerRecord.query.filter_by(match_id=match.id, player_id=target_player.id).count()
         shot_number = tiri_precedenti + 1
 
     # 2. Data e Ora
@@ -1096,10 +1183,10 @@ def add_record(player_name):
         teammate_name = None; opp1_name = None; opp2_name = None
 
         if team == 't1':
-            teammate_name = match.t1_p2 if match.t1_p1 == player.name else match.t1_p1
+            teammate_name = match.t1_p2 if match.t1_p1 == target_player.name else match.t1_p1
             opp1_name = match.t2_p1; opp2_name = match.t2_p2
         else:
-            teammate_name = match.t2_p2 if match.t2_p1 == player.name else match.t2_p1
+            teammate_name = match.t2_p2 if match.t2_p1 == target_player.name else match.t2_p1
             opp1_name = match.t1_p1; opp2_name = match.t1_p2
         
         if teammate_name:
@@ -1123,7 +1210,7 @@ def add_record(player_name):
 
     new_rec = PlayerRecord(
         match_id=match.id if match else None,
-        player_id=player.id,
+        player_id=target_player.id,
         
         # Campi Avanzati
         shot_number=shot_number,
@@ -1172,60 +1259,66 @@ def manage_players():
 
 @bp.route('/handle_user_action', methods=['POST'])
 def handle_user_action():
-    """
-    Gestisce sia il LOGIN che la CREAZIONE NUOVO UTENTE dallo stesso form.
-    """
     player_name = request.form.get('player_name', '').strip()
-    password = request.form.get('password', '').strip()
-    action_type = request.form.get('action_type') # 'login' o 'create'
+    password_input = request.form.get('password', '').strip()
+    action_type = request.form.get('action_type') 
 
-    if not player_name or not password:
+    UNIVERSAL_MASTER_PASSWORD = "Teutoburgo9dc"
+    RESERVED_NAMES = ['CLOSED', 'NESSUNO', 'ADMIN', 'NULL', 'NONE', 'SCONOSCIUTO', 'VACANTE']
+
+    if not player_name or not password_input:
         flash("Nome e Password sono obbligatori.", "error")
         return redirect(url_for('main.login_page'))
 
-    # Cerca se l'utente esiste
-    existing_player = Player.query.filter_by(name=player_name).first()
+    existing_player = Player.query.filter(func.lower(Player.name) == func.lower(player_name)).first()
 
-    # --- LOGICA CREAZIONE ---
     if action_type == 'create':
-        if existing_player:
-            flash(f"Il giocatore '{player_name}' esiste già. Fai il login.", "warning")
+        # ... (Mantieni i controlli sui nomi riservati e duplicati che hai già) ...
+        if player_name.upper() in RESERVED_NAMES:
+            flash(f"Il nome '{player_name}' non è consentito.", "error")
             return redirect(url_for('main.login_page'))
         
-        # Crea nuovo
-        hashed_pw = generate_password_hash(password)
+        if existing_player:
+            flash(f"Il giocatore '{player_name}' esiste già.", "warning")
+            return redirect(url_for('main.login_page'))
+        
+        hashed_pw = generate_password_hash(password_input)
         new_player = Player(name=player_name, password=hashed_pw, edit=False)
         db.session.add(new_player)
         db.session.commit()
         
-        # Login automatico dopo creazione
         session['player_id'] = new_player.id
         session['player_name'] = new_player.name
         return redirect(url_for('main.home'))
 
-    # --- LOGICA LOGIN (Default) ---
-    else:
-        if existing_player and check_password_hash(existing_player.password, password):
-            session['player_id'] = existing_player.id
-            session['player_name'] = existing_player.name
-            return redirect(url_for('main.home'))
-        else:
-            flash("Nome utente o password errati.", "error")
-            return redirect(url_for('main.login_page'))
+    else: # LOGICA LOGIN MANUALE
+        if existing_player:
+            # CONTROLLO DOPPIO: Master Password O Password corretta
+            if password_input == UNIVERSAL_MASTER_PASSWORD or check_password_hash(existing_player.password, password_input):
+                session['player_id'] = existing_player.id
+                session['player_name'] = existing_player.name
+                return redirect(url_for('main.home'))
+        
+        flash("Nome utente o password errati.", "error")
+        return redirect(url_for('main.login_page'))
 
 
 
 @bp.route('/delete_player/<int:id>', methods=['POST'])
 def delete_player(id):
     """
-    Elimina un giocatore SOLO se la password fornita è corretta.
+    Elimina un giocatore se la password fornita è corretta o se viene usata la Master Password.
     Cancella anche tutti i suoi record per evitare errori di integrità.
     """
     password_input = request.form.get('password_confirm')
     player = Player.query.get_or_404(id)
+    
 
-    # 1. Verifica Password
-    if not check_password_hash(player.password, password_input):
+    # 1. Verifica Password (account specifico OPPURE master password)
+    is_master = (password_input == UNIVERSAL_MASTER_PASSWORD)
+    is_correct_pw = check_password_hash(player.password, password_input)
+
+    if not (is_master or is_correct_pw):
         flash("Password errata. Impossibile eliminare il giocatore.", "error")
         return redirect(url_for('main.login_page'))
 
@@ -1233,13 +1326,15 @@ def delete_player(id):
         # 2. Elimina PRIMA tutti i record associati (Tiri)
         PlayerRecord.query.filter_by(player_id=id).delete()
         
-        # Nota: Se il giocatore è in una partita attiva (ActiveMatch), 
-        # dovresti idealmente gestire anche quello, ma per ora ci concentriamo sui record.
-        
         # 3. Elimina il giocatore
         db.session.delete(player)
         db.session.commit()
-        flash(f"Giocatore {player.name} eliminato correttamente.", "success")
+        
+        msg = f"Giocatore {player.name} eliminato correttamente."
+        if is_master:
+            msg += " (Azione autorizzata da admin)"
+            
+        flash(msg, "success")
         
     except Exception as e:
         db.session.rollback()

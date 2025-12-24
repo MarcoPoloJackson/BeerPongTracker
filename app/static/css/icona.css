@@ -1,0 +1,307 @@
+/* static/css/icona.css - FINAL MERGED FIX */
+
+/* ==============================================
+   1. GLOBAL RESET & "WHITE BOX KILLER"
+   Questo blocco rende trasparenti i contenitori
+   che altrimenti sarebbero bianchi dal main.css
+============================================== */
+
+:root {
+    --bg-dark: #1e293b;
+    --border-color: rgba(255, 255, 255, 0.2);
+    --orange: #f59e0b;
+    --success: #10b981;
+    --text-main: #ffffff;
+    --text-muted: #cbd5e1;
+}
+
+* {
+    box-sizing: border-box !important;
+}
+
+html, body {
+    width: 100% !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: var(--bg-dark) !important;
+    color: var(--text-main) !important;
+    font-family: 'Outfit', 'Segoe UI', sans-serif;
+}
+
+/* FIX PER IL MAIN DI BASE.HTML */
+main {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* QUESTO È IL TRUCCO: Rende trasparenti tutti i possibili contenitori */
+.container, .card, .card-body, .form-card, .form-wrapper, form, .profile-section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+}
+
+/* ==============================================
+   2. LAYOUT DELLA PAGINA ICONA
+============================================== */
+
+.icon-container {
+    width: 100% !important;
+    max-width: 450px !important;
+    margin: 0 auto !important;
+    padding: 20px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center !important;
+}
+
+/* --- ICONA HEADER --- */
+.current-icon-display {
+    font-size: 3.5em;
+    margin: 10px auto 20px auto;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255,255,255,0.05) !important; /* Leggero sfondo per l'icona */
+    border-radius: 24px;
+    border: 1px solid var(--border-color) !important;
+}
+
+h2 {
+    font-size: 1.5em;
+    margin-bottom: 25px;
+    color: white !important;
+    text-align: center;
+    width: 100%;
+}
+
+/* --- TASTO HOME (LARGO 100%) --- */
+.top-nav-wrapper {
+    width: 100%;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-home-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    background: transparent !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 50px;
+    color: white !important;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+/* --- SEZIONI PROFILO --- */
+/* Qui ripristiniamo un minimo di ordine visivo ma TRASPARENTE */
+.profile-section {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    margin-bottom: 25px !important;
+    
+    /* Bordo sottile opzionale per separare le sezioni, ma sfondo trasparente */
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 20px !important;
+    padding: 20px 0 !important;
+}
+
+.profile-section form {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important; /* Centra gli input stretti */
+    gap: 10px !important;
+}
+
+.profile-section label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted) !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-align: center;
+    width: 100%;
+}
+
+.input-group {
+    width: 100% !important;
+    display: flex;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 15px !important;
+}
+
+/* ==============================================
+   3. STILI INPUT E BOTTONI (COLORI PERSONALIZZATI)
+============================================== */
+
+/* INPUT: SFONDO BIANCO, TESTO SCURO, LARGO 80% */
+.input-field {
+    width: 80% !important; /* STRETTO */
+    height: 50px !important;
+    padding: 0 15px !important;
+    border-radius: 12px !important;
+
+    background-color: #ffffff !important; /* BIANCO */
+    color: #1e293b !important;            /* TESTO SCURO */
+    border: 1px solid #ccc !important;
+    
+    text-align: center;
+    font-weight: 700;
+    font-size: 16px !important;
+    box-shadow: none !important;
+    appearance: none;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--orange) !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3) !important;
+}
+
+.input-field::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* BOTTONI AGGIORNA/SALVA: ARANCIONI, TESTO SCURO, LARGHI 80% */
+.btn-save {
+    width: 80% !important; /* STRETTO */
+    height: 50px !important;
+    border-radius: 12px !important;
+    border: none !important;
+
+    background-color: var(--orange) !important; /* ARANCIONE */
+    color: #1e293b !important;                  /* TESTO SCURO */
+    
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+}
+
+/* Se ci sono classi specifiche arancioni o verdi, le forziamo tutte all'arancione */
+.btn-orange { 
+    background-color: var(--orange) !important; 
+    color: #1e293b !important;
+}
+
+/* ==============================================
+   4. GRIGLIA EMOJI (FIX SBORDAMENTO)
+============================================== */
+
+.emoji-grid-container {
+    width: 100% !important;
+    max-width: 100%;
+    background: transparent !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 20px;
+    padding: 16px 8px !important;
+    margin-top: 20px;
+
+    overflow: hidden !important; /* solo il contenitore */
+}
+
+.emoji-grid-container form {
+    width: 100%;
+}
+
+
+.emoji-grid-container h3 {
+    margin: 0 0 15px 0;
+    color: var(--text-muted);
+    font-size: 0.9em;
+    text-transform: uppercase;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.emoji-grid {
+    display: grid !important;
+
+    /* colonne STABILI su mobile */
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)) !important;
+
+    gap: 8px !important;
+
+    width: 100% !important;
+    max-height: 320px;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding: 4px !important;
+
+    /* 🔥 QUESTO È IL FIX MOBILE */
+    -webkit-overflow-scrolling: touch;
+
+    box-sizing: border-box !important;
+}
+
+
+/* Scrollbar interna stilizzata */
+.emoji-grid::-webkit-scrollbar {
+    width: 4px; /* Scrollbar più sottile */
+}
+.emoji-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+.emoji-grid::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 10px;
+}
+
+.emoji-btn {
+    width: 100% !important;
+    height: 48px !important; /* 🔥 via aspect-ratio */
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    font-size: 1.75rem !important;
+    line-height: 1.2 !important;
+
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 12px;
+
+    padding: 0 !important;
+
+    cursor: pointer;
+
+    /* NON tagliare l’emoji */
+    overflow: visible !important;
+}
+
+.emoji-btn:active {
+    transform: scale(0.95);
+    background: rgba(255,255,255,0.15) !important;
+}
+/* --- MESSAGGI FLASH --- */
+.flash-messages { width: 100%; margin-bottom: 20px; }
+.alert {
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    background: rgba(46, 204, 113, 0.2) !important; 
+    color: #2ecc71 !important; 
+    border: 1px solid rgba(46, 204, 113, 0.3) !important;
+    width: 100% !important;
+}

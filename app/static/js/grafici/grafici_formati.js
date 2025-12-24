@@ -265,8 +265,13 @@ function render3DCharts(format3DData) {
             if (maxZ === minZ) maxZ = minZ + 1; 
 
             // --- 3. POSIZIONAMENTO ---
-            const dynamicDistance = 100 + (maxDimension * 10);
-            let topOffset = + 20 - (spreadY * 5); 
+            // Se lo schermo è piccolo, aggiungiamo 60 alla distanza per zoommare fuori
+            const isMobile = window.innerWidth < 600;
+            const dynamicDistance = 100 + (maxDimension * 10) + (isMobile ? 0 : 0);
+            let topOffset = 20 - (spreadY * 5);
+            if (isMobile) {
+                topOffset += -10; // Aumenta questo numero per spingere il tavolo più in basso
+                }   
 
             const seriesData = dataPoints.map(item => ({
                 value: [item.x, item.y, item.z],

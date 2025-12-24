@@ -44,15 +44,7 @@
     text-align: left;         /* Il testo parte da sinistra rispetto al flex container */
 }
 
-/* Responsive: su mobile riduciamo leggermente */
-@media (max-width: 768px) {
-    .header-avatar-large {
-        width: 50px;
-        height: 50px;
-        font-size: 1.8em;
-        border-radius: 12px;
-    }
-}
+
 
 /* Header */
 .stats-header {
@@ -219,23 +211,6 @@ canvas {
     max-height: 300px; /* Altezza massima controllata */
 }
 
-@media (max-width: 768px) {
-    .stats-grid {
-        grid-template-columns: 1fr; /* Un solo grafico per riga */
-    }
-    
-    .stats-header h1 {
-        font-size: 1.8rem;
-    }
-
-    .chart-card {
-        min-height: auto; /* Evita spazi vuoti eccessivi su mobile */
-    }
-
-    .chart-wrapper, .pie-chart-container {
-        height: 250px; /* Riduciamo leggermente l'altezza per schermi piccoli */
-    }
-}
 
 
 /* --- STILE PER I GRAFICI A TORTA (Vale per entrambi) --- */
@@ -367,16 +342,167 @@ canvas {
     color: #fff;
 }
 
-/* Adattamento per dispositivi mobili */
+/* =========================================
+   REVISIONE TOTALE MOBILE (< 600px)
+   ========================================= */
 @media (max-width: 600px) {
+    
+    /* 0. CONTENITORE GENERALE: aggiungiamo respiro ai lati */
+    .icon-container, .home-container, body {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    /* 1. WIDGETS ANCORA PIÙ PICCOLI (2 PER RIGA) */
+    .top-widgets {
+        grid-template-columns: 1fr 1fr !important; 
+        gap: 8px; /* Spazio minimo tra i widget */
+        margin-bottom: 20px;
+    }
+
+    .widget {
+        padding: 8px 4px !important; /* Estremamente compatto */
+        min-height: 75px !important;  /* Altezza ridotta */
+        border-radius: 10px;
+    }
+
+    .widget span {
+        font-size: 0.65em !important; /* Testo etichetta minuscolo */
+        line-height: 1;
+        margin-bottom: 2px;
+    }
+
+    .widget strong {
+        font-size: 1.1em !important; /* Numero ridotto per non "esplodere" */
+        line-height: 1;
+    }
+
+    /* 2. GRAFICI: 1 PER RIGA, PIÙ ALTI E DISTANTI DAI BORDI */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 25px; /* Più spazio tra un grafico e l'altro */
+        padding: 0 5px; /* Evita che la card tocchi il bordo schermo */
+    }
+
+    .chart-card {
+        padding: 15px !important;
+        /* Aumentiamo l'altezza verticale della card */
+        min-height: 450px !important; 
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 3. IL GRAFICO EFFETTIVO (CANVAS) */
+    .chart-wrapper, .pie-chart-container {
+        /* Aumentiamo l'altezza del grafico per renderlo più grande sulla verticale */
+        height: 350px !important; 
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    canvas {
+        /* Forza il grafico a prendersi lo spazio verticale assegnato */
+        max-height: 350px !important;
+    }
+
+    /* 4. HEADER E TITOLI */
+    .header-avatar-large {
+        width: 45px !important;
+        height: 45px !important;
+        font-size: 1.5em !important;
+    }
+
+    .stats-header h1 {
+        font-size: 1.4rem !important;
+    }
+}
+
+/* =========================================
+   NAVIGAZIONE IN BASSO - GRIGLIA 2x2 UNIFORME
+   ========================================= */
+@media (max-width: 600px) {
+    
+    .bottom-navigation {
+        margin-top: 40px;
+        padding: 30px 15px 60px 15px !important;
+        border-top: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
     .nav-buttons-container {
+        display: grid !important;
+        /* Forza 2 colonne uguali */
+        grid-template-columns: 1fr 1fr !important; 
+        gap: 12px;
+        width: 100%;
+    }
+
+    .btn-nav.extra {
+        /* Reset totale dimensioni */
+        min-width: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        height: 90px !important; /* Tutti alta uguale */
+        
+        /* Stile High-Contrast */
+        background: #334155 !important; 
+        color: #ffffff !important;      
+        border: 2px solid #475569 !important; 
+        border-radius: 18px !important;
+        
+        display: flex !important;
         flex-direction: column;
         align-items: center;
-        gap: 20px;
+        justify-content: center;
+        text-decoration: none;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-    
-    .btn-nav.extra {
-        width: 90%; /* Pulsanti quasi a tutta larghezza su smartphone */
-        padding: 15px 20px;
+
+    /* Icone azzurre per i tasti standard */
+    .btn-nav.extra i {
+        font-size: 1.7rem !important;
+        margin-bottom: 6px;
+        color: #60a5fa !important; 
+    }
+
+    /* --- TASTO HOME (COLORE DIVERSO) --- */
+    .btn-home-full {
+        /* Rimuoviamo l'espansione su due colonne */
+        grid-column: auto !important; 
+        
+        /* Colore distintivo: un bordeaux/scuro elegante */
+        background: #4c1d23 !important; 
+        border-color: #7f1d1d !important;
+    }
+
+    .btn-home-full i {
+        color: #f87171 !important; /* Icona più chiara per contrasto */
+    }
+
+    .btn-nav.extra span {
+        font-size: 0.8rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        line-height: 1.2;
+    }
+
+    /* Effetto pressione */
+    .btn-nav.extra:active {
+        transform: scale(0.95);
+        filter: brightness(0.8);
+    }
+
+    /* 4. HEADER E TITOLI (AUMENTATI) */
+    .header-avatar-large {
+        width: 60px !important;      /* Aumentato da 45px a 60px */
+        height: 60px !important;     /* Aumentato da 45px a 60px */
+        min-width: 60px !important;
+        font-size: 2.2em !important; /* Emoji più grande */
+        border-radius: 16px !important;
+    }
+
+    .stats-header h1 {
+        font-size: 2.1rem !important; /* Aumentato da 1.4rem a 2.1rem */
+        font-weight: 800 !important;
+        line-height: 1.1 !important;
     }
 }

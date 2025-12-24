@@ -48,7 +48,7 @@ def init_db(app):
         db.create_all()
 
         # --- SEZIONE AGGIUNTA: CREAZIONE ADMIN ---
-        admin_names = ['Admin1', 'Admin2', 'Admin3', 'Admin4']
+        admin_names = ['admin1', 'admin2', 'admin3', 'admin4']
         # La password di default per tutti è "admin" (puoi cambiarla qui sotto)
         default_password = "Teutoburgo9dc" 
         
@@ -56,7 +56,7 @@ def init_db(app):
         for name in admin_names:
             # Controlla se esiste già
             if not Player.query.filter_by(name=name).first():
-                print(f"Creating Admin: {name}")
+                print(f"Creating admin: {name}")
                 hashed_pw = generate_password_hash(default_password)
                 # Creiamo il player con is_admin=True
                 new_admin = Player(name=name, password=hashed_pw, is_admin=True)
@@ -80,6 +80,7 @@ class Player(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     edit = db.Column(db.Boolean, default=False) 
     records = db.relationship('PlayerRecord', backref='player', lazy=True)
+    fav_drink = db.Column(db.String(50), default="Birra")
     icon = db.Column(db.String(10), default=None)
 
 class ActiveMatch(db.Model):
@@ -197,11 +198,11 @@ class PlayerRecord(db.Model):
         return self.player.name if self.player else "Sconosciuto"
 
 # ==========================================
-#      HELPER FUNCTIONS (Per Admin DB)
+#      HELPER FUNCTIONS (Per admin DB)
 # ==========================================
 
 def get_all_db_content():
-    """Restituisce tutto il contenuto del DB per la pagina Admin"""
+    """Restituisce tutto il contenuto del DB per la pagina admin"""
     engine = db.engine
     data = {}
     try:

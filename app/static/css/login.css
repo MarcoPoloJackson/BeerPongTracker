@@ -1,20 +1,37 @@
-/* =========================================
-   1. LAYOUT WHITE MODE
-   ========================================= */
-body.login-page-white { 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+/* 1. RESET E CENTRATURA (Unificati) */
+body.login-page-white {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
-    margin: 0; padding: 20px; color: #333;
-    min-height: 100vh; display: flex; justify-content: center; align-items: flex-start;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Centra verticalmente */
+    overflow-x: hidden;
 }
 
+/* 2. FIX PER IL TAG <MAIN> DI BASE.HTML */
+body.login-page-white main {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* 3. IL CONTENITORE CARD */
 .login-container-white { 
-    width: 100%; max-width: 850px; margin-top: 40px;
+    width: 95%; /* Leggermente meno di 100 per non toccare i bordi */
+    max-width: 850px;
     background: rgba(255, 255, 255, 0.8); 
-    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 25px; padding: 40px;
+    border-radius: 25px;
+    padding: 40px;
     box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+    box-sizing: border-box; /* IMPERATIVO per evitare zoom/sbordo */
 }
 
 .login-header h1 {
@@ -142,3 +159,288 @@ body.login-page-white {
 .modal-input { margin: 20px 0; }
 .modal-btn-danger { width: 100%; padding: 12px; border-radius: 40px; border: none; font-weight: bold; cursor: pointer; color: white; background: #e74c3c; transition: 0.2s;}
 .modal-btn-danger:hover { background: #c0392b; }
+
+
+
+/* --- GESTIONE MESSAGGI FLASH --- */
+
+/* 1. Nascondi i messaggi globali che arrivano da base.html */
+/* Questo impedisce che il testo appaia fuori dalla card rompendo il layout */
+body.login-page-white .flash-messages-global, 
+body.login-page-white .alert {
+    display: none !important;
+}
+
+/* 2. Stile per il contenitore dei messaggi DENTRO la card */
+.flash-container {
+    width: 100%;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 3. Stile del singolo messaggio */
+.flash-message {
+    padding: 15px;
+    border-radius: 15px;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 600;
+    width: 100%;
+    box-sizing: border-box;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Colori specifici in base alla categoria */
+.flash-message.error, .flash-message.danger {
+    background-color: #fde8e8;
+    color: #c0392b;
+    border: 1px solid #fab1a0;
+}
+
+.flash-message.success, .flash-message.info {
+    background-color: #def7e5;
+    color: #27ae60;
+    border: 1px solid #95e1d3;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   ADATTAMENTO MOBILE
+   ========================================= */
+@media (max-width: 600px) {
+    /* 1. IL CONTENITORE PRINCIPALE */
+    body.login-page-white {
+        padding: 10px !important;
+        align-items: center !important; /* Inizia dall'alto invece che dal centro */
+        background: #f0f2f5;    /* Cambia colore per distinguere mobile da desktop */
+    }
+
+    .login-container-white {
+        width: 100% !important; /* Forza la larghezza piena */
+        max-width: 100%;        /* Mai oltre il bordo dello schermo */
+        margin-top: 10px !important;
+        padding: 30px 20px !important;     /* SPAZIO INTERNO: prova a cambiare il primo numero per l'altezza */
+        border-radius: 25px;    /* Arrotondamento angoli */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* Ombra più leggera su mobile */
+        
+        /* FIX CENTRATURA CONTENUTO INTERNO */
+        display: flex !important;           /* <--- FIX */
+        flex-direction: column !important;  /* <--- FIX */
+        align-items: center !important;     /* <--- FIX: Centra tutto orizzontalmente */
+
+        /* BLOCCA SBORDAMENTO */
+        box-sizing: border-box; 
+        overflow: hidden; 
+    }
+
+    .login-header h1 {
+        font-size: 2.2rem !important; /* REM è meglio dei PX per scalare i testi */
+        text-align: center !important;
+        letter-spacing: 0px;      /* Avvicina le lettere per un look moderno */
+        margin-bottom: 25px;
+    }
+
+    /* 2. FORM E INPUT */
+    .white-login-form {
+        width: 100%; /* Forza il form a essere largo quanto il contenitore */
+    }
+
+    /* 2. FORM E INPUT (Punto critico per lo sbordamento) */
+    .white-input-group {
+        display: flex;
+        flex-direction: column !important; /* Impila elementi verticalmente */
+        gap: 20px !important;                        /* Spazio tra un elemento e l'altro */
+        width: 100%;
+    }
+
+    .input-wrapper-rounded {
+        width: 100% !important;
+        height: 55px !important;     /* Più alto per facilitare la digitazione */
+    }
+
+    .rounded-input {
+        font-size: 16px !important;  /* TRUCCO: 16px impedisce ad iPhone di fare zoom quando clicchi */
+        padding: 0px 20px !important;
+        background-color: #f8f9fa !important;
+    }
+
+    /* 3. BOTTONI */
+    .main-action-btn-white {
+        width: 100% !important;
+        height: 55px !important;     /* Bottone molto grande: "Thumb-friendly" */
+        font-size: 1.2rem;
+        background: #27ae60;
+        border-radius: 50px;
+        order: 2;                    /* Lo tiene sotto gli input */
+        
+        /* PROVA: aggiungi un'animazione al tocco */
+        transition: transform 0.1s;
+    }
+    
+    .main-action-btn-white:active {
+        transform: scale(0.98);      /* Si schiaccia leggermente quando cliccato */
+    }
+
+    .mode-toggle-btn-white {
+    order: 3;
+    align-self: center;
+    
+    /* Dimensioni identiche per il cerchio */
+    width: 40px !important; 
+    height: 45px !important;
+    
+    /* Forza la forma circolare */
+    border-radius: 50% !important; 
+    
+    /* Reset dei padding che potrebbero deformarlo */
+    padding: 0 !important;
+    
+    /* Allineamento perfetto del simbolo "+" al centro */
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+
+    background: #e0e0e0;
+    border: 2px solid #3498db;
+    margin-top: 0px;
+    
+    /* Se il simbolo "+" sembra troppo grande, rimpicciolisci il font */
+    font-size: 1.2rem; 
+    
+    /* Evita che si schiacci se è dentro un contenitore flex */
+    flex-shrink: 0; 
+}
+
+    /* 4. GRIGLIA GIOCATORI */
+    .section-title-white {
+        width: 100%;
+        text-align: center !important; /* Centra il titolo "GIOCATORI REGISTRATI" */
+        margin-top: 0px;
+    }
+    .players-grid-white {
+        display: flex;             /* Cambiamo da grid a flex per più controllo */
+        flex-direction: column;
+        align-items: center;
+        width: auto;               /* Prende la larghezza del padre */
+        gap: 12px;
+        margin-top: 20px;
+        max-height: 350px;         
+        overflow-y: auto;          
+        overflow-x: hidden;        /* BLOCCA RIGIDAMENTE lo scroll orizzontale */
+        padding: 5px;             /* Un piccolo spazio per non far toccare i bordi alle card */
+    }
+
+    .player-card-white {
+        /* REGOLA D'ORO: Non usare width: 100% se hai padding/bordi, 
+           usa width: auto o lascia che il flex lo gestisca */
+        width: 100% !important;    
+        margin: 0;                 
+        padding: 15px 30px !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #eee;
+        border-radius: 20px;
+        box-sizing: border-box;    /* Fondamentale: include padding nel calcolo della larghezza */
+    }
+
+    /* Assicuriamoci che il testo lungo non rompa la card */
+    .player-name-wrapper {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: auto; /* Impedisce al nome di spingere fuori il tasto X */
+    }
+
+    .player-avatar {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 1.2rem;
+        flex-shrink: 0;              /* Impedisce all'avatar di schiacciarsi */
+    }
+
+    /* 1. LA SCHEDA BIANCA (PADRE) */
+    .modal-content-white {
+        width: 90% !important;
+        max-width: 340px !important;
+        margin: auto !important;
+        
+        /* Padding simmetrico: 30px sopra/sotto, 25px lati */
+        padding: 25px 15px !important; 
+        
+        border-radius: 25px !important; /* Arrotondamento deciso */
+        background: white;
+        
+        /* FIX RETTANGOLO BIANCO: Taglia tutto ciò che esce dai bordi */
+        overflow: hidden !important; 
+        
+        /* Centratura Flexbox */
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        
+        box-sizing: border-box !important;
+    }
+
+    /* 2. IL FORM (IL COLPEVOLE NASCOSTO) <--- NUOVO FIX */
+    /* Questo resetta il contenitore invisibile che spostava tutto a destra */
+    #deleteForm {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important; /* Assicura che i figli siano centrati nel form */
+    }
+
+    /* 3. L'INPUT DELLA PASSWORD */
+    .input-wrapper-rounded.modal-input {
+        width: 80% !important;      /* Largo come il form (che è largo come la scheda - il padding) */
+        margin: 20px 0 !important;    /* Spazio solo verticale */
+        height: 50px !important;
+        box-sizing: border-box !important;
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;  /* Pulizia grafica */
+    }
+
+    .modal-input .rounded-input {
+        width: 100% !important;
+        height: 100% !important;
+        text-align: center !important;
+        padding: 0 !important;
+    }
+
+    /* 4. IL BOTTONE ROSSO */
+    .modal-btn-danger {
+        width: 80% !important;       /* Largo come l'input */
+        padding: 15px 0 !important;
+        font-size: 1rem !important;
+        border-radius: 50px !important;
+        
+        /* FIX CENTRATURA: Rimuovi margini laterali che potrebbero spostarlo */
+        margin: 0 !important;         
+        
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Titolo e Testo */
+    .modal-title-danger {
+        text-align: center !important;
+        width: 100% !important;
+        margin-top: 0 !important;
+    }
+    
+    .modal-content-white p {
+        text-align: center !important;
+        padding: 0 10px !important; /* Un po' di margine per il testo descrittivo */
+    }
+}
